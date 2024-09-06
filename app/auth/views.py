@@ -1,7 +1,7 @@
 # backend/app/auth/views.py
 
 from flask import Blueprint, request, jsonify
-from app import db, bcrypt
+from app import db, bcrypt, mail
 from app.models import User
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required, get_jwt_identity, 
@@ -246,7 +246,6 @@ def get_all_users():
         }
         for user in users
     ]
-    print(user.account_number)
     return jsonify({"users": users_data}), 200
 @auth_blueprint.route('/notifications', methods=['GET'])
 @jwt_required()
