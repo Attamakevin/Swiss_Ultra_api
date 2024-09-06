@@ -8,7 +8,7 @@ from flask_jwt_extended import (
     get_jwt
 )
 from datetime import timedelta
-
+#from Flask_mail import Message
 auth_blueprint = Blueprint('auth', __name__)
 
 # Utility function to get current user
@@ -21,31 +21,38 @@ def get_current_user():
         print(f"Error retrieving current user: {e}")
     return None
 
+from flask_mail import Message
+
 @auth_blueprint.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
     username = data.get('username')
     email = data.get('email')
     password = data.get('password')
-    
+
+    # Check if username is already taken
     if User.query.filter_by(username=username).first() is not None:
         return jsonify({"error": "Username already taken"}), 400
-    
+
+    # Create a new user
     new_user = User(username=username, email=email)
     new_user.set_password(password)
     new_user.account_balance = 0.00
-    
+
+    # Add the new user to the database
     db.session.add(new_user)
     db.session.commit()
+
     # Send a welcome email with the account number
     msg = Message(
-        "Welcome to Ultra",
+        "Welcome to SwissUltra",
         recipients=[email]
     )
-    msg.body = f"Dear {username},\n\nWelcome to Ultra Account!\n\nYour account number is: {new_user.account_number}\n\nThank you for joining us."
+    msg.body = f"Dear {username},\n\nWelcome to SwissUltra Account!\n\nYour account number is: {new_user.account_number}\n\nThank you for joining us."
 
+    # Ensure the 'mail' object is correctly initialized and configured
     mail.send(msg)
-    
+
     return jsonify({"message": "User registered successfully", "account_number": new_user.account_number}), 201
 
 @auth_blueprint.route('/login', methods=['POST'])
