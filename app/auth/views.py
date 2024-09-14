@@ -44,14 +44,14 @@ def register():
     db.session.commit()
 
     # Send a welcome email with the account number
-    msg = Message(
-        "Welcome to SwissUltra",
-        recipients=[email]
-    )
-    msg.body = f"Dear {username},\n\nWelcome to SwissUltra Account!\n\nYour account number is: {new_user.account_number}\n\nThank you for joining us."
+    #msg = Message(
+     #   "Welcome to SwissUltra",
+      #  recipients=[email]
+    #)
+    #msg.body = f"Dear {username},\n\nWelcome to SwissUltra Account!\n\nYour account number is: {new_user.account_number}\n\nThank you for joining us."
 
     # Ensure the 'mail' object is correctly initialized and configured
-    mail.send(msg)
+    #mail.send(msg)
 
     return jsonify({"message": "User registered successfully", "account_number": new_user.account_number}), 201
 
