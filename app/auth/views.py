@@ -158,7 +158,7 @@ def debit_user():
     if user is None:
         return jsonify({"error": "User not found"}), 404
 
-    if user.account_balance < amount:
+    if user.account_balance < float(amount):
         return jsonify({"error": "Insufficient funds"}), 400
 
     user.account_balance -= float(amount)
