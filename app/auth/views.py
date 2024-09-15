@@ -152,6 +152,7 @@ def debit_user():
     data = request.get_json()
     username = data.get('username')
     amount = data.get('amount')
+    account_number = data.get('account_number')
 
     user = User.query.filter_by(username=username).first()
     if user is None:
@@ -160,7 +161,7 @@ def debit_user():
     if user.account_balance < amount:
         return jsonify({"error": "Insufficient funds"}), 400
 
-    user.account_balance -= amount
+    user.account_balance -= float(amount)
 
     # Add a notification
     notification_message = f"Your account has been debited with {amount:.2f}."
