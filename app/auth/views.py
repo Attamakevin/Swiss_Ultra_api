@@ -132,8 +132,8 @@ def credit_user():
     if user is None:
         return jsonify({"error": "User not found"}), 404
 
-    user.account_balance += amount
-    user.last_credited_amount = amount
+    user.account_balance += float(amount)
+    user.last_credited_amount = float(amount)
 
     # Add a notification
     notification_message = f"Your account has been credited with {amount:.2f} by {depositor_name}."
