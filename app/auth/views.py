@@ -261,6 +261,7 @@ def get_all_users():
 def get_notifications():
     current_user = get_current_user()
 
+
     # Ensure that the notifications list is properly formatted
     if not current_user.notifications:
         return jsonify({"notifications": []}), 200
