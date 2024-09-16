@@ -123,25 +123,40 @@ def credit_user():
         return jsonify({"error": "Unauthorized access"}), 403
 
     data = request.get_json()
+    
+    # Validate request data
+    if not all([data.get('username'), data.get('account_number'), data.get('amount'), data.get('depositor_name')]):
+        return jsonify({"error": "Missing required fields"}), 400
+
     username = data.get('username')
     account_number = data.get('account_number')
     amount = data.get('amount')
     depositor_name = data.get('depositor_name')
 
-    user = User.query.filter_by(username=username).first()
+    # Ensure amount is a valid number
+    try:
+        amount = float(amount)
+    except ValueError:
+        return jsonify({"error": "Invalid amount"}), 400
+
+    # Fetch user based on username or account_number
+    user = User.query.filter_by(username=username, account_number=account_number).first()
     if user is None:
         return jsonify({"error": "User not found"}), 404
 
-    user.account_balance += float(amount)
-    user.last_credited_amount = float(amount)
+    # Update account balance and last credited amount
+    user.account_balance += amount
+    user.last_credited_amount = amount
 
-    # Add a notification
+    # Add a notification for the user
     notification_message = f"Your account has been credited with {amount:.2f} by {depositor_name}."
     user.add_notification(notification_message)
 
     db.session.commit()
 
-    return jsonify({"message": "Account balance credited successfully"}), 200
+    return jsonify({"message": "Account credited successfully"}), 200
+
+
 @auth_blueprint.route('/admin/debit_user', methods=['PUT'])
 @jwt_required()
 def debit_user():
@@ -150,26 +165,41 @@ def debit_user():
         return jsonify({"error": "Unauthorized access"}), 403
 
     data = request.get_json()
-    username = data.get('username')
-    amount = data.get('amount')
-    account_number = data.get('account_number')
 
-    user = User.query.filter_by(username=username).first()
+    # Validate request data
+    if not all([data.get('username'), data.get('account_number'), data.get('amount')]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    username = data.get('username')
+    account_number = data.get('account_number')
+    amount = data.get('amount')
+
+    # Ensure amount is a valid number
+    try:
+        amount = float(amount)
+    except ValueError:
+        return jsonify({"error": "Invalid amount"}), 400
+
+    # Fetch user based on username or account_number
+    user = User.query.filter_by(username=username, account_number=account_number).first()
     if user is None:
         return jsonify({"error": "User not found"}), 404
 
-    if user.account_balance < float(amount):
+    # Check if the user has enough funds to be debited
+    if user.account_balance < amount:
         return jsonify({"error": "Insufficient funds"}), 400
 
-    user.account_balance -= float(amount)
+    # Deduct the amount from the user's balance
+    user.account_balance -= amount
 
-    # Add a notification
+    # Add a notification for the user
     notification_message = f"Your account has been debited with {amount:.2f}."
     user.add_notification(notification_message)
 
     db.session.commit()
 
-    return jsonify({"message": "Account balance debited successfully"}), 200
+    return jsonify({"message": "Account debited successfully"}), 200
+
 @auth_blueprint.route('/admin/edit_user', methods=['PUT'])
 @jwt_required()
 def edit_user():
@@ -256,21 +286,26 @@ def get_all_users():
         for user in users
     ]
     return jsonify({"users": users_data}), 200
+from datetime import datetime
+
 @auth_blueprint.route('/notifications', methods=['GET'])
 @jwt_required()
 def get_notifications():
     current_user = get_current_user()
 
-
     # Ensure that the notifications list is properly formatted
-    if not current_user.notifications:
+    if not current_user.notifications or len(current_user.notifications) == 0:
         return jsonify({"notifications": []}), 200
 
-    # Map each notification to include additional data if necessary
+    # Map each notification to ensure proper timestamp formatting
     notifications = [
         {
             "message": notification.get("message", ""),
-            "timestamp": notification.get("timestamp", "").isoformat() if isinstance(notification.get("timestamp"), datetime) else notification.get("timestamp")
+            "timestamp": (
+                notification.get("timestamp").isoformat() 
+                if isinstance(notification.get("timestamp"), datetime) 
+                else notification.get("timestamp")
+            )
         }
         for notification in current_user.notifications
     ]
