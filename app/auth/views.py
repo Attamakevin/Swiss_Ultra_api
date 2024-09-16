@@ -1,7 +1,7 @@
 # backend/app/auth/views.py
 
 from flask import Blueprint, request, jsonify
-from app import db, bcrypt, mail
+from app import db, bcrypt #mail
 from app.models import User
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required, get_jwt_identity, 
@@ -260,5 +260,19 @@ def get_all_users():
 @jwt_required()
 def get_notifications():
     current_user = get_current_user()
-    return jsonify({"notifications": current_user.notifications}), 200
+
+    # Ensure that the notifications list is properly formatted
+    if not current_user.notifications:
+        return jsonify({"notifications": []}), 200
+
+    # Map each notification to include additional data if necessary
+    notifications = [
+        {
+            "message": notification.get("message", ""),
+            "timestamp": notification.get("timestamp", "").isoformat() if isinstance(notification.get("timestamp"), datetime) else notification.get("timestamp")
+        }
+        for notification in current_user.notifications
+    ]
+
+    return jsonify({"notifications": notifications}), 200
 
