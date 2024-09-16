@@ -291,24 +291,22 @@ from datetime import datetime
 @auth_blueprint.route('/notifications', methods=['GET'])
 @jwt_required()
 def get_notifications():
-    current_user = get_current_user()
+    current_user = get_jwt_identity()
+    user = User.query.filter_by(username=current_user['username']).first()
 
-    # Ensure that the notifications list is properly formatted
-    if not current_user.notifications or len(current_user.notifications) == 0:
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if not user.notifications:
         return jsonify({"notifications": []}), 200
 
-    # Map each notification to ensure proper timestamp formatting
+    # Map each notification to include additional data if necessary
     notifications = [
         {
-            "message": notification.get("message", ""),
-            "timestamp": (
-                notification.get("timestamp").isoformat() 
-                if isinstance(notification.get("timestamp"), datetime) 
-                else notification.get("timestamp")
-            )
+            "message": notification.message,  # Access directly
+            "timestamp": notification.timestamp.isoformat() if isinstance(notification.timestamp, datetime) else str(notification.timestamp)
         }
-        for notification in current_user.notifications
+        for notification in user.notifications
     ]
 
     return jsonify({"notifications": notifications}), 200
-
