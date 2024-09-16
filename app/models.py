@@ -3,6 +3,7 @@ from datetime import datetime
 from app import db, bcrypt
 
 class User(db.Model):
+ 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
@@ -12,7 +13,9 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     account_balance = db.Column(db.Float, default=0.00)
     last_credited_amount = db.Column(db.Float, default=0.00)
-    notifications = db.Column(db.JSON, default=[])
+
+    # Define relationship with Notification model
+    notifications = db.relationship('Notification', backref='user', lazy=True)
 
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
@@ -21,6 +24,14 @@ class User(db.Model):
         return bcrypt.check_password_hash(self.password_hash, password)
 
     def add_notification(self, message):
-        self.notifications.append({"message": message, "timestamp": datetime.utcnow()})
+        notification = Notification(message=message, user_id=self.id)
+        db.session.add(notification)
         db.session.commit()
+
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    message = db.Column(db.String(255), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
