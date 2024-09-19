@@ -149,7 +149,7 @@ def credit_user():
     user.last_credited_amount = amount
 
     # Add a notification for the user
-    notification_message = f"Your account has been credited with {amount:.2f} by {depositor_name}."
+    notification_message = f"Your account has been credited with ${amount:.2f} by {depositor_name}."
     user.add_notification(notification_message)
 
     db.session.commit()
@@ -193,7 +193,7 @@ def debit_user():
     user.account_balance -= amount
 
     # Add a notification for the user
-    notification_message = f"Your account has been debited with {amount:.2f}."
+    notification_message = f"Your account has been debited with ${amount:.2f}."
     user.add_notification(notification_message)
 
     db.session.commit()
