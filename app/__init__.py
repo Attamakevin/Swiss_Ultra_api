@@ -6,6 +6,8 @@ from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from flask_mail import Mail
 import datetime
+import os
+
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -17,23 +19,28 @@ blacklist = set()
 def create_app():
     app = Flask(__name__)
     app.config.from_object('app.config.Config')
-    #mail configuration
-    MAIL_SERVER = 'smtp.switzultra.com'  # e.g., smtp.gmail.com or any other SMTP service provider
-    MAIL_PORT = 587  # or 465 if using SSL
-    MAIL_USE_TLS = True  # Use TLS for security
-    MAIL_USE_SSL = False  # Use SSL (if required by your mail provider)
-    MAIL_USERNAME = 'noreply@switzultra.com'  # Your admin email address
-    MAIL_PASSWORD = 'xkHGHc9_o_[5'  # Password for the email account
-    MAIL_DEFAULT_SENDER = 'noreply@switzultra.com'  # Default sender email address for outgoing emails
-    MAIL_MAX_EMAILS = None
-    MAIL_ASCII_ATTACHMENTS = False
+    
+    # Mail configuration
+    app.config['MAIL_SERVER'] = 'smtp.switzultra.com'  # Your SMTP server
+    app.config['MAIL_PORT'] = 587  # Port for TLS
+    app.config['MAIL_USE_TLS'] = True  # Use TLS
+    app.config['MAIL_USE_SSL'] = False  # Not using SSL
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'noreply@switzultra.com')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'xkHGHc9_o_[5')  # Move this to environment variable
+    app.config['MAIL_DEFAULT_SENDER'] = 'noreply@switzultra.com'
+    app.config['MAIL_MAX_EMAILS'] = None
+    app.config['MAIL_ASCII_ATTACHMENTS'] = False
+
+    # Initialize Flask-Mail with the app
+    mail.init_app(app)
+    
 
     # Initialize extensions
     db.init_app(app)
     migrate.init_app(app, db)
     bcrypt.init_app(app)
     jwt.init_app(app)
-    mail.init_app(app)  
+    #mail.init_app(app)  
 
     # Register blueprints
     from app.auth.views import auth_blueprint
