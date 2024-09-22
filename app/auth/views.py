@@ -323,9 +323,10 @@ def transfer():
 
     # Get transfer details from request
     data = request.get_json()
-    receiver_name = data.get('receiver_name')
     receiver_bank = data.get('receiver_bank')
+    receiver_name = data.get('receiver_name')
     receiver_account_number = data.get('receiver_account_number')
+    routing_number = data.get('routing_number')
     amount = data.get('amount')
 
     if not all([receiver_name, receiver_bank, receiver_account_number, amount]):
@@ -358,6 +359,7 @@ def transfer():
         'receiver_name': receiver_name,
         'receiver_bank': receiver_bank,
         'receiver_account_number': receiver_account_number,
+        'routing_number': routing_number,
         'amount': amount
     }
     db.session.commit()
@@ -365,23 +367,35 @@ def transfer():
     return jsonify({"message": "Authentication code sent to your email. Please verify to continue."}), 200
 
 
-@auth_blueprint.route('/verify_transfer', methods=['POST'])
+@auth_blueprint.route('/verify_auth_code', methods=['POST'])
 @jwt_required()
-def verify_transfer():
+def verify_auth_code():
     current_user = get_current_user()
     data = request.get_json()
 
-    # Step 2: Verify the authentication code
+    # Verify the authentication code
     auth_code = data.get('auth_code')
-    tin = data.get('tin')
 
-    if not auth_code or not tin:
-        return jsonify({"error": "Authentication code and TIN are required"}), 400
+    if not auth_code:
+        return jsonify({"error": "Authentication code is required"}), 400
 
     if not current_user.pending_transfer or current_user.pending_transfer.get('auth_code') != int(auth_code):
         return jsonify({"error": "Invalid authentication code"}), 400
 
-    # Step 3: Save TIN to user details
+    return jsonify({"message": "Authentication code verified. Proceed to submit TIN."}), 200
+@auth_blueprint.route('/save_tin', methods=['POST'])
+@jwt_required()
+def save_tin():
+    current_user = get_current_user()
+    data = request.get_json()
+
+    # Verify and save the TIN
+    tin = data.get('tin')
+
+    if not tin:
+        return jsonify({"error": "TIN is required"}), 400
+
+    # Save TIN to user details
     current_user.tax_identification_number = tin
     db.session.commit()
 
@@ -397,7 +411,7 @@ def verify_transfer():
     current_user.pending_transfer['second_auth_code'] = second_auth_code
     db.session.commit()
 
-    return jsonify({"message": "Second authentication code sent. Please verify to complete the transfer."}), 200
+    return jsonify({"message": "TIN saved successfully. Second authentication code sent."}), 200
 
 
 @auth_blueprint.route('/complete_transfer', methods=['POST'])
