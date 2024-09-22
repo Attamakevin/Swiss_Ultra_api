@@ -1,14 +1,16 @@
 # backend/app/auth/views.py
 
 from flask import Blueprint, request, jsonify
-from app import db, bcrypt #mail
+from app import db, bcrypt, mail
 from app.models import User
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required, get_jwt_identity, 
-    get_jwt
+    get_jwt,decode_token
 )
 from datetime import timedelta
-#from Flask_mail import Message
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+import random
+from flask_mail import Message
 auth_blueprint = Blueprint('auth', __name__)
 
 # Utility function to get current user
@@ -92,13 +94,14 @@ def login():
 @jwt_required()
 def account():
     current_user = get_current_user()
-    print(current_user)
+    formatted_account_balance = f"{current_user.account_balance:,.2f}"
+    formatted_last_credited_amount = f"{current_user.last_credited_amount:,.2f}" if current_user.last_credited_amount else None
     return jsonify({
         "username": current_user.username,
         "email": current_user.email,
         "account_number": current_user.account_number,
-        "account_balance": current_user.account_balance,
-        "last_credited_amount": current_user.last_credited_amount
+        "account_balance": formatted_account_balance,
+        "last_credited_amount": formatted_last_credited_amount
     }), 200
 
 @auth_blueprint.route('/admin/login', methods=['POST'])
@@ -148,8 +151,10 @@ def credit_user():
     user.account_balance += amount
     user.last_credited_amount = amount
 
+    formatted_amount = f"{amount:,.2f}"
+
     # Add a notification for the user
-    notification_message = f"Your account has been credited with ${amount:.2f} by {depositor_name}."
+    notification_message = f"Your account has been credited with ${formatted_amount} by {depositor_name}."
     user.add_notification(notification_message)
 
     db.session.commit()
@@ -310,3 +315,223 @@ def get_notifications():
     ]
 
     return jsonify({"notifications": notifications}), 200
+# Transfer Endpoint
+@auth_blueprint.route('/transfer', methods=['POST'])
+@jwt_required()
+def transfer():
+    current_user = get_current_user()
+
+    # Get transfer details from request
+    data = request.get_json()
+    receiver_name = data.get('receiver_name')
+    receiver_bank = data.get('receiver_bank')
+    receiver_account_number = data.get('receiver_account_number')
+    amount = data.get('amount')
+
+    if not all([receiver_name, receiver_bank, receiver_account_number, amount]):
+        return jsonify({"error": "Missing required fields"}), 400
+
+    # Validate the amount
+    try:
+        amount = float(amount)
+        if amount <= 0:
+            return jsonify({"error": "Amount must be positive"}), 400
+    except ValueError:
+        return jsonify({"error": "Invalid amount format"}), 400
+
+    # Ensure current user has sufficient balance
+    if current_user.account_balance < amount:
+        return jsonify({"error": "Insufficient funds"}), 400
+
+    # Step 1: Send authentication code to user's email
+    auth_code = random.randint(100000, 999999)
+    msg = Message(
+        "Transfer Authentication Code",
+        recipients=[current_user.email],
+        body=f"Your transfer authentication code is: {auth_code}"
+    )
+    mail.send(msg)
+
+    # Save the auth code temporarily (ideally this would be in a database or cache)
+    current_user.pending_transfer = {
+        'auth_code': auth_code,
+        'receiver_name': receiver_name,
+        'receiver_bank': receiver_bank,
+        'receiver_account_number': receiver_account_number,
+        'amount': amount
+    }
+    db.session.commit()
+
+    return jsonify({"message": "Authentication code sent to your email. Please verify to continue."}), 200
+
+
+@auth_blueprint.route('/verify_transfer', methods=['POST'])
+@jwt_required()
+def verify_transfer():
+    current_user = get_current_user()
+    data = request.get_json()
+
+    # Step 2: Verify the authentication code
+    auth_code = data.get('auth_code')
+    tin = data.get('tin')
+
+    if not auth_code or not tin:
+        return jsonify({"error": "Authentication code and TIN are required"}), 400
+
+    if not current_user.pending_transfer or current_user.pending_transfer.get('auth_code') != int(auth_code):
+        return jsonify({"error": "Invalid authentication code"}), 400
+
+    # Step 3: Save TIN to user details
+    current_user.tax_identification_number = tin
+    db.session.commit()
+
+    # Send a second authentication code to the user
+    second_auth_code = random.randint(100000, 999999)
+    msg = Message(
+        "Second Authentication Code",
+        recipients=[current_user.email],
+        body=f"Your second authentication code is: {second_auth_code}"
+    )
+    mail.send(msg)
+
+    current_user.pending_transfer['second_auth_code'] = second_auth_code
+    db.session.commit()
+
+    return jsonify({"message": "Second authentication code sent. Please verify to complete the transfer."}), 200
+
+
+@auth_blueprint.route('/complete_transfer', methods=['POST'])
+@jwt_required()
+def complete_transfer():
+    current_user = get_current_user()
+    data = request.get_json()
+
+    # Step 4: Verify the second authentication code
+    second_auth_code = data.get('second_auth_code')
+
+    if not second_auth_code or not current_user.pending_transfer:
+        return jsonify({"error": "Second authentication code is required"}), 400
+
+    if current_user.pending_transfer.get('second_auth_code') != int(second_auth_code):
+        return jsonify({"error": "Invalid second authentication code"}), 400
+
+    # Step 5: Complete the transfer
+    amount = current_user.pending_transfer['amount']
+    current_user.account_balance -= amount
+
+    # In a real application, you'd communicate with the bank's API here
+    db.session.commit()
+    # Step 6: Add a notification about the completed transfer
+    formatted_amount = f"{amount:,.2f}"
+    notification_message = f"Transfer of ${formatted_amount} to {receiver_name} (Account: {account_number}, Bank: {receiver_bank}) has been successfully processed. You will receive the value in your bank account within 4-7 days."
+    current_user.add_notification(notification_message)
+
+    # Clear pending transfer after completion
+    current_user.pending_transfer = None
+    db.session.commit()
+
+    return jsonify({"message": "Transfer successful. You will receive the value in your bank account within 4-7 days."}), 200
+# Forgot Password Request
+@auth_blueprint.route('/forgot_password', methods=['POST'])
+def forgot_password():
+    data = request.get_json()
+    email = data.get('email')
+
+    if not email:
+        return jsonify({"error": "Email is required"}), 400
+
+    user = User.query.filter_by(email=email).first()
+
+    if user:
+        # Generate a unique token for password reset
+        token = create_reset_token(user.id)
+
+        # Send the reset email with the token
+        reset_url = url_for('auth.reset_password', token=token, _external=True)
+        subject = "Password Reset Request"
+        message = f"To reset your password, visit the following link: {reset_url}"
+        send_email(user.email, subject, message)
+
+    # Return success even if email is not found to prevent email enumeration
+    return jsonify({"message": "If your email is registered, a reset link will be sent."}), 200
+
+# Reset Password
+@auth_blueprint.route('/reset_password/<token>', methods=['POST'])
+def reset_password(token):
+    try:
+        # Decode the reset token to get the user's ID
+        user_id = decode_reset_token(token)
+    except Exception as e:
+        return jsonify({"error": "Invalid or expired token"}), 400
+
+    data = request.get_json()
+    new_password = data.get('new_password')
+
+    if not new_password:
+        return jsonify({"error": "Password is required"}), 400
+
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Update the user's password
+    user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    db.session.commit()
+
+    return jsonify({"message": "Password reset successful"}), 200
+
+# Helper function to create reset token
+def create_reset_token(user_id):
+    expires = timedelta(hours=1)  # Token valid for 1 hour
+    return create_access_token(identity=user_id, expires_delta=expires)
+
+# Helper function to decode the reset token
+def decode_reset_token(token):
+    try:
+        decoded_token = decode_token(token)
+        user_id = decoded_token['sub']
+        return user_id
+    except (ExpiredSignatureError, InvalidTokenError):
+        raise Exception("Invalid or expired token")
+
+# Helper function to send emails
+def send_email(to, subject, body):
+    msg = Message(subject, recipients=[to], body=body)
+    mail.send(msg)
+
+@auth_blueprint.route('/send_message', methods=['POST'])
+def send_message():
+    data = request.get_json()
+
+    # Validate the incoming data
+    name = data.get('name')
+    email = data.get('email')
+    subject = data.get('subject')
+    message = data.get('message')
+
+    if not all([name, email, subject, message]):
+        return jsonify({"error": "All fields are required"}), 400
+
+    # Compose the message
+    email_subject = f"New message from {name}: {subject}"
+    email_body = f"""
+    You have received a new message from {name} ({email}):
+
+    Subject: {subject}
+
+    Message:
+    {message}
+    """
+
+    # Send email to support
+    try:
+        msg = Message(subject=email_subject,
+                      recipients=["support@swissultra.com"],
+                      body=email_body)
+
+        mail.send(msg)
+        return jsonify({"message": "Message sent successfully"}), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to send message: {str(e)}"}), 500
