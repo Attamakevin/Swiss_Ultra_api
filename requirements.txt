@@ -6,3 +6,5 @@ Flask-JWT-Extended
 Flask_CORS
 Flask-Mail
 gunicorn
+psycopg2-binary
+
