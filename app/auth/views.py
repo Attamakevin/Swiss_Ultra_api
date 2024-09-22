@@ -23,8 +23,7 @@ def get_current_user():
         print(f"Error retrieving current user: {e}")
     return None
 
-from flask_mail import Message
-
+#from flask_mail import message
 @auth_blueprint.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -36,6 +35,10 @@ def register():
     if User.query.filter_by(username=username).first() is not None:
         return jsonify({"error": "Username already taken"}), 400
 
+    # Check if email is already in use
+    if User.query.filter_by(email=email).first() is not None:
+        return jsonify({"error": "Email already in use"}), 400
+
     # Create a new user
     new_user = User(username=username, email=email)
     new_user.set_password(password)
@@ -45,15 +48,16 @@ def register():
     db.session.add(new_user)
     db.session.commit()
 
-    #Send a welcome email with the account number
-    msg = Message(
-        "Welcome to SwissUltra",
-        recipients=[email]
-    )
-    msg.body = f"Dear {username},\n\nWelcome to SwissUltra Account!\n\nYour account number is: {new_user.account_number}\n\nThank you for joining us."
-
-    # Ensure the 'mail' object is correctly initialized and configured
-    mail.send(msg)
+    # Send a welcome email with the account number
+    try:
+        msg = Message(
+            "Welcome to SwissUltra",
+            recipients=[email]
+        )
+        msg.body = f"Dear {username},\n\nWelcome to SwissUltra Account!\n\nYour account number is: {new_user.account_number}\n\nThank you for joining us."
+        mail.send(msg)
+    except Exception as e:
+        return jsonify({"error": "User registered but failed to send email"}), 500
 
     return jsonify({"message": "User registered successfully", "account_number": new_user.account_number}), 201
 
