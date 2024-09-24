@@ -22,14 +22,15 @@ def create_app():
     
     # Mail configuration
     app.config['MAIL_SERVER'] = 'switzultra.com'  # Your SMTP server
-    app.config['MAIL_PORT'] = 465  # Port for TLS
-    app.config['MAIL_USE_TLS'] = True  # Use TLS
-    app.config['MAIL_USE_SSL'] = False  # Not using SSL
+    app.config['MAIL_PORT'] = 465  # Port for SSL
+    app.config['MAIL_USE_TLS'] = False  # Disable TLS
+    app.config['MAIL_USE_SSL'] = True  # Enable SSL
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'noreply@switzultra.com')
-    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'xkHGHc9_o_[5')  # Move this to environment variable
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD', 'xkHGHc9_o_[5')  # Ensure this is stored securely
     app.config['MAIL_DEFAULT_SENDER'] = 'noreply@switzultra.com'
     app.config['MAIL_MAX_EMAILS'] = None
     app.config['MAIL_ASCII_ATTACHMENTS'] = False
+
 
     # Initialize Flask-Mail with the app
     mail.init_app(app)
