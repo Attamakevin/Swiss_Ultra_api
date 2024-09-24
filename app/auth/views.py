@@ -319,7 +319,6 @@ def get_notifications():
     ]
 
     return jsonify({"notifications": notifications}), 200
-# Transfer Endpoint
 @auth_blueprint.route('/transfer', methods=['POST'])
 @jwt_required()
 def transfer():
@@ -333,8 +332,8 @@ def transfer():
     routing_number = data.get('routing_number')
     amount = data.get('amount')
 
+    # Check for missing fields
     if not all([receiver_name, receiver_bank, receiver_account_number, routing_number, amount]):
-
         return jsonify({"error": "Missing required fields"}), 400
 
     # Validate the amount
@@ -369,7 +368,7 @@ def transfer():
     }
     db.session.commit()
 
-    return jsonify({"message": "Authentication code sent to your email. Please verify to continue."}), 200
+    return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
 
 
 @auth_blueprint.route('/verify_auth_code', methods=['POST'])
