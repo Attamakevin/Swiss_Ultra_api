@@ -349,7 +349,7 @@ def transfer():
         return jsonify({"error": "Insufficient funds"}), 400
 
     # Step 1: Send authentication code to user's email
-    auth_code = random.randint(100000, 999999)
+    auth_code = random.randint(100, 999)
     msg = Message(
         "Transfer Authentication Code",
         recipients=[current_user.email],
@@ -404,7 +404,7 @@ def save_tin():
     db.session.commit()
 
     # Send a second authentication code to the user
-    second_auth_code = random.randint(100000, 999999)
+    second_auth_code = random.randint(1000, 9999)
     msg = Message(
         "Second Authentication Code",
         recipients=[current_user.email],
