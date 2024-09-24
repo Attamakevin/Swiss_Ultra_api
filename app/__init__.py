@@ -21,8 +21,8 @@ def create_app():
     app.config.from_object('app.config.Config')
     
     # Mail configuration
-    app.config['MAIL_SERVER'] = 'smtp.switzultra.com'  # Your SMTP server
-    app.config['MAIL_PORT'] = 587  # Port for TLS
+    app.config['MAIL_SERVER'] = 'switzultra.com'  # Your SMTP server
+    app.config['MAIL_PORT'] = 465  # Port for TLS
     app.config['MAIL_USE_TLS'] = True  # Use TLS
     app.config['MAIL_USE_SSL'] = False  # Not using SSL
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME', 'noreply@switzultra.com')
