@@ -319,6 +319,8 @@ def get_notifications():
     ]
 
     return jsonify({"notifications": notifications}), 200
+import logging
+logging.basicConfig(level=logging.DEBUG)
 @auth_blueprint.route('/transfer', methods=['POST'])
 @jwt_required()
 def transfer():
@@ -326,6 +328,7 @@ def transfer():
 
     # Get transfer details from request
     data = request.get_json()
+    logging.debug(f"Received transfer data: {data}")
     receiver_bank = data.get('receiver_bank')
     receiver_name = data.get('receiver_name')
     receiver_account_number = data.get('receiver_account_number')
