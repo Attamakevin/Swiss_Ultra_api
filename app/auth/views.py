@@ -333,7 +333,8 @@ def transfer():
     routing_number = data.get('routing_number')
     amount = data.get('amount')
 
-    if not all([data.get(receiver_name), data.get(receiver_bank), data.get(receiver_account_number),data.get(routing_number), data.get(amount)]):
+    if not all([receiver_name, receiver_bank, receiver_account_number, routing_number, amount]):
+
         return jsonify({"error": "Missing required fields"}), 400
 
     # Validate the amount
@@ -357,7 +358,7 @@ def transfer():
     )
     mail.send(msg)
 
-    # Save the auth code temporarily (ideally this would be in a database or cache)
+    # Save the auth code temporarily
     current_user.pending_transfer = {
         'auth_code': auth_code,
         'receiver_name': receiver_name,
