@@ -417,11 +417,11 @@ def save_tin():
     )
     mail.send(msg)
 
-    # Update pending_transfer with the second_auth_code
-    if current_user.pending_transfer:
-        
-        current_user.pending_transfer['second_auth_code'] = second_auth_code
-        
+    if current_user.pending_transfer is None:
+        current_user.pending_transfer = {}
+
+    current_user.pending_transfer['second_auth_code'] = second_auth_code
+
 
     db.session.commit()
 
