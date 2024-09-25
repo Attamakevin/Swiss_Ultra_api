@@ -319,8 +319,6 @@ def get_notifications():
     ]
 
     return jsonify({"notifications": notifications}), 200
-import logging
-logging.basicConfig(level=logging.DEBUG)
 @auth_blueprint.route('/transfer', methods=['POST'])
 @jwt_required()
 def transfer():
@@ -328,7 +326,6 @@ def transfer():
 
     # Get transfer details from request
     data = request.get_json()
-    logging.debug(f"Received transfer data: {data}")
     receiver_bank = data.get('receiver_bank')
     receiver_name = data.get('receiver_name')
     receiver_account_number = data.get('receiver_account_number')
@@ -361,7 +358,7 @@ def transfer():
     mail.send(msg)
 
     # Save the auth code temporarily
-    current_user.pending_transfer = {
+    transfer_details = {
         'auth_code': auth_code,
         'receiver_name': receiver_name,
         'receiver_bank': receiver_bank,
@@ -369,6 +366,7 @@ def transfer():
         'routing_number': routing_number,
         'amount': amount
     }
+    current_user.pending_transfer = transfer_details
     db.session.commit()
 
     return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
@@ -386,10 +384,14 @@ def verify_auth_code():
     if not auth_code:
         return jsonify({"error": "Authentication code is required"}), 400
 
-    if not current_user.pending_transfer or current_user.pending_transfer.get('auth_code') != int(auth_code):
+    # If using JSON column
+    pending_transfer = current_user.pending_transfer
+
+    if not pending_transfer or pending_transfer.get('auth_code') != int(auth_code):
         return jsonify({"error": "Invalid authentication code"}), 400
 
     return jsonify({"message": "Authentication code verified. Proceed to submit TIN."}), 200
+
 @auth_blueprint.route('/save_tin', methods=['POST'])
 @jwt_required()
 def save_tin():
@@ -415,11 +417,15 @@ def save_tin():
     )
     mail.send(msg)
 
-    current_user.pending_transfer['second_auth_code'] = second_auth_code
+    # Update pending_transfer with the second_auth_code
+    if current_user.pending_transfer:
+        
+        current_user.pending_transfer['second_auth_code'] = second_auth_code
+        
+
     db.session.commit()
 
     return jsonify({"message": "TIN saved successfully. Second authentication code sent."}), 200
-
 
 @auth_blueprint.route('/complete_transfer', methods=['POST'])
 @jwt_required()
@@ -427,24 +433,41 @@ def complete_transfer():
     current_user = get_current_user()
     data = request.get_json()
 
-    # Step 4: Verify the second authentication code
+    # Verify the second authentication code
     second_auth_code = data.get('second_auth_code')
 
+    # If no second auth code or pending transfer, return an error
     if not second_auth_code or not current_user.pending_transfer:
         return jsonify({"error": "Second authentication code is required"}), 400
 
-    if current_user.pending_transfer.get('second_auth_code') != int(second_auth_code):
+    
+    pending_transfer = current_user.pending_transfer
+
+
+    # Verify the second authentication code
+    if pending_transfer.get('second_auth_code') != int(second_auth_code):
         return jsonify({"error": "Invalid second authentication code"}), 400
 
-    # Step 5: Complete the transfer
-    amount = current_user.pending_transfer['amount']
+    # Complete the transfer
+    amount = pending_transfer['amount']
+    receiver_name = pending_transfer['receiver_name']
+    receiver_bank = pending_transfer['receiver_bank']
+    receiver_account_number = pending_transfer['receiver_account_number']
+    routing_number = pending_transfer['routing_number']
+
+    # Deduct the amount from the user's account balance
     current_user.account_balance -= amount
 
-    # In a real application, you'd communicate with the bank's API here
+    # In a real application, you would communicate with the bank's API here
     db.session.commit()
-    # Step 6: Add a notification about the completed transfer
+
+    # Add a notification about the completed transfer
     formatted_amount = f"{amount:,.2f}"
-    notification_message = f"Transfer of ${formatted_amount} to {receiver_name} (Account: {account_number}, Bank: {receiver_bank}) has been successfully processed. You will receive the value in your bank account within 4-7 days."
+    notification_message = (
+        f"Transfer of ${formatted_amount} to {receiver_name} "
+        f"(Account: {receiver_account_number}, Bank: {receiver_bank}) "
+        "has been successfully processed. You will receive the value in your bank account within 4-7 days."
+    )
     current_user.add_notification(notification_message)
 
     # Clear pending transfer after completion
@@ -452,6 +475,7 @@ def complete_transfer():
     db.session.commit()
 
     return jsonify({"message": "Transfer successful. You will receive the value in your bank account within 4-7 days."}), 200
+
 # Forgot Password Request
 @auth_blueprint.route('/forgot_password', methods=['POST'])
 def forgot_password():

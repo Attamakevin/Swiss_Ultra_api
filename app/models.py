@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from app import db, bcrypt
+from sqlalchemy.dialects.postgresql import JSON
 
 class User(db.Model):
  
@@ -15,6 +16,7 @@ class User(db.Model):
     last_credited_amount = db.Column(db.Float, default=0.00)
     tax_identification_number = db.Column(db.String(20), nullable=True)
     auth_code = db.Column(db.Integer, nullable=True)
+    pending_transfer = db.Column(JSON, nullable=True)
 
     # Define relationship with Notification model
     notifications = db.relationship('Notification', backref='user', lazy=True)
