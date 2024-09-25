@@ -395,8 +395,10 @@ def verify_auth_code():
 @auth_blueprint.route('/save_tin', methods=['POST'])
 @jwt_required()
 def save_tin():
+    app.logger.info('save_tin endpoint called')
     current_user = get_current_user()
     data = request.get_json()
+    app.logger.info(f'Received data: {data}')
 
     # Verify and save the TIN
     tin = data.get('tin')
