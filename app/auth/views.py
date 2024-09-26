@@ -1,6 +1,6 @@
 # backend/app/auth/views.py
 
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify,url_for
 from app import db, bcrypt, mail
 from app.models import User
 from flask_jwt_extended import (
