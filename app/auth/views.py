@@ -390,54 +390,60 @@ def verify_auth_code():
     if not pending_transfer or pending_transfer.get('auth_code') != int(auth_code):
         return jsonify({"error": "Invalid authentication code"}), 400
 
-    return jsonify({"message": "Authentication code verified. Proceed to submit TIN."}), 200
+    # Authentication successful, generate 6-digit tax verification code
+    tax_verification_code = random.randint(100000, 999999)
+    
+    # Send the tax verification code to the user's email
+    subject = "Your Tax Verification Code"
+    message = f"Your tax verification code is: {tax_verification_code}"
+    send_email(current_user.email, subject, message)
 
+    # Save the tax verification code to pending_transfer
+    current_user.pending_transfer['tax_verification_code'] = tax_verification_code
+    db.session.commit()
+
+    return jsonify({"message": "Authentication code verified. Tax verification code sent."}), 200
+
+import random
+from flask import jsonify, request
+from flask_jwt_extended import jwt_required
+
+# Endpoint to verify tax verification code and generate the final 3-digit code
 @auth_blueprint.route('/save_tin', methods=['POST'])
 @jwt_required()
 def save_tin():
-    if request.method == 'OPTIONS':
-        response = app.make_default_options_response()
-        headers = None
-        if 'ACCESS_CONTROL_REQUEST_HEADERS' in request.headers:
-            headers = request.headers['ACCESS_CONTROL_REQUEST_HEADERS']
-
-        response.headers.add('Access-Control-Allow-Origin', '*')
-        response.headers.add('Access-Control-Allow-Headers', headers)
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        return response, 200
-    app.logger.info('save_tin endpoint called')
     current_user = get_current_user()
     data = request.get_json()
-    app.logger.info(f'Received data: {data}')
 
-    # Verify and save the TIN
-    tin = data.get('tin')
+    # Verify the second (tax verification) authentication code
+    tax_verification_code = data.get('tax_verification_code')
 
-    if not tin:
-        return jsonify({"error": "TIN is required"}), 400
+    if not tax_verification_code:
+        return jsonify({"error": "Tax verification code is required"}), 400
 
-    # Save TIN to user details
-    current_user.tax_identification_number = tin
+    pending_transfer = current_user.pending_transfer
+
+    if not pending_transfer or pending_transfer.get('second_auth_code') != int(tax_verification_code):
+        return jsonify({"error": "Invalid tax verification code"}), 400
+
+    # Save the tax verification code to the user details
+    current_user.tax_identification_number = tax_verification_code
     db.session.commit()
 
-    # Send a second authentication code to the user
-    second_auth_code = random.randint(1000, 9999)
-    msg = Message(
-        "Second Authentication Code",
-        recipients=[current_user.email],
-        body=f"Your second authentication code is: {second_auth_code}"
-    )
-    mail.send(msg)
+    # Generate a 3-digit final authentication code
+    final_auth_code = random.randint(100, 999)
 
-    if current_user.pending_transfer is None:
-        current_user.pending_transfer = {}
+    # Send the final authentication code to the user's email
+    subject = "Final Authentication Code"
+    message = f"Your final authentication code is: {final_auth_code}"
+    send_email(current_user.email, subject, message)
 
-    current_user.pending_transfer['second_auth_code'] = second_auth_code
-
-
+    # Save the final authentication code in pending_transfer
+    current_user.pending_transfer['final_auth_code'] = final_auth_code
     db.session.commit()
 
-    return jsonify({"message": "TIN saved successfully. Second authentication code sent."}), 200
+    return jsonify({"message": "Tax verification code saved successfully. Final authentication code sent."}), 200
+
 
 @auth_blueprint.route('/complete_transfer', methods=['POST'])
 @jwt_required()
@@ -445,20 +451,18 @@ def complete_transfer():
     current_user = get_current_user()
     data = request.get_json()
 
-    # Verify the second authentication code
-    second_auth_code = data.get('second_auth_code')
+    # Verify the final authentication code
+    final_auth_code = data.get('final_auth_code')
 
-    # If no second auth code or pending transfer, return an error
-    if not second_auth_code or not current_user.pending_transfer:
-        return jsonify({"error": "Second authentication code is required"}), 400
+    # If no final auth code or pending transfer, return an error
+    if not final_auth_code or not current_user.pending_transfer:
+        return jsonify({"error": "Final authentication code is required"}), 400
 
-    
     pending_transfer = current_user.pending_transfer
 
-
-    # Verify the second authentication code
-    if pending_transfer.get('second_auth_code') != int(second_auth_code):
-        return jsonify({"error": "Invalid second authentication code"}), 400
+    # Verify the final authentication code
+    if pending_transfer.get('final_auth_code') != int(final_auth_code):
+        return jsonify({"error": "Invalid final authentication code"}), 400
 
     # Complete the transfer
     amount = pending_transfer['amount']
@@ -488,28 +492,47 @@ def complete_transfer():
 
     return jsonify({"message": "Transfer successful. You will receive the value in your bank account within 4-7 days."}), 200
 
+
 # Forgot Password Request
 @auth_blueprint.route('/forgot_password', methods=['POST'])
 def forgot_password():
     data = request.get_json()
     email = data.get('email')
 
+    # Validate the email
     if not email:
         return jsonify({"error": "Email is required"}), 400
 
+    # Search for the user in the database
     user = User.query.filter_by(email=email).first()
 
+    # Even if user is not found, return the same response to prevent email enumeration
     if user:
         # Generate a unique token for password reset
         token = create_reset_token(user.id)
 
-        # Send the reset email with the token
+        # Create the password reset URL
         reset_url = url_for('auth.reset_password', token=token, _external=True)
+
+        # Prepare the email content
         subject = "Password Reset Request"
-        message = f"To reset your password, visit the following link: {reset_url}"
+        message = f"""
+        Hi {user.first_name},
+
+        We received a request to reset your password. You can reset your password by clicking the link below:
+        
+        {reset_url}
+
+        If you did not request a password reset, please ignore this email or contact support if you have any questions.
+
+        Thanks,
+        Your Team
+        """
+
+        # Send the email with the reset link
         send_email(user.email, subject, message)
 
-    # Return success even if email is not found to prevent email enumeration
+    # Return success message to prevent email enumeration
     return jsonify({"message": "If your email is registered, a reset link will be sent."}), 200
 
 # Reset Password
@@ -521,24 +544,26 @@ def reset_password(token):
     except Exception as e:
         return jsonify({"error": "Invalid or expired token"}), 400
 
+    # Get the new password from the request
     data = request.get_json()
     new_password = data.get('new_password')
 
     if not new_password:
         return jsonify({"error": "Password is required"}), 400
 
+    # Get the user by ID
     user = User.query.get(user_id)
 
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    # Update the user's password
-    user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+    # Update the user's password (hash it before saving)
+    user.password = generate_password_hash(new_password).decode('utf-8')
     db.session.commit()
 
     return jsonify({"message": "Password reset successful"}), 200
 
-# Helper function to create reset token
+# Helper function to create reset token (valid for 1 hour)
 def create_reset_token(user_id):
     expires = timedelta(hours=1)  # Token valid for 1 hour
     return create_access_token(identity=user_id, expires_delta=expires)
@@ -547,7 +572,7 @@ def create_reset_token(user_id):
 def decode_reset_token(token):
     try:
         decoded_token = decode_token(token)
-        user_id = decoded_token['sub']
+        user_id = decoded_token['sub']  # 'sub' is the user_id
         return user_id
     except (ExpiredSignatureError, InvalidTokenError):
         raise Exception("Invalid or expired token")
