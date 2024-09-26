@@ -396,7 +396,15 @@ def verify_auth_code():
 @jwt_required()
 def save_tin():
     if request.method == 'OPTIONS':
-        return '',200
+        response = app.make_default_options_response()
+        headers = None
+        if 'ACCESS_CONTROL_REQUEST_HEADERS' in request.headers:
+            headers = request.headers['ACCESS_CONTROL_REQUEST_HEADERS']
+
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', headers)
+        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        return response, 200
     app.logger.info('save_tin endpoint called')
     current_user = get_current_user()
     data = request.get_json()
