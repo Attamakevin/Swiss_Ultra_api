@@ -517,7 +517,7 @@ def forgot_password():
         # Prepare the email content
         subject = "Password Reset Request"
         message = f"""
-        Hi {user.first_name},
+        Hi {user.username},
 
         We received a request to reset your password. You can reset your password by clicking the link below:
         
