@@ -414,7 +414,7 @@ from flask_jwt_extended import jwt_required
 def save_tin():
     current_user = get_current_user()
     data = request.get_json()
-    app.logger.info(f"Received data: {data}")
+    #app.logger.info(f"Received data: {data}")
 
     # Verify the second (tax verification) authentication code
     tax_verification_code = data.get('tax_verification_code')
@@ -428,8 +428,8 @@ def save_tin():
         return jsonify({"error": "Invalid tax verification code"}), 400
 
     # Save the tax verification code to the user details
-    current_user.tax_identification_number = tax_verification_code
-    db.session.commit()
+    #current_user.tax_identification_number = tax_verification_code
+    #db.session.commit()
 
     # Generate a 3-digit final authentication code
     final_auth_code = random.randint(1000, 9999)
