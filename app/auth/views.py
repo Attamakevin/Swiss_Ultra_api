@@ -512,7 +512,7 @@ def forgot_password():
         token = create_reset_token(user.id)
 
         # Create the password reset URL
-        reset_url = url_for('auth.reset_password', token=token, _external=True)
+        reset_url = f"https://banking-dashboard-navy.vercel.app/reset-password?token={token}"
 
         # Prepare the email content
         subject = "Password Reset Request"
