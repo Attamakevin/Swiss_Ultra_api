@@ -319,6 +319,21 @@ def get_notifications():
     ]
 
     return jsonify({"notifications": notifications}), 200
+import random
+from flask import jsonify, request
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.orm.attributes import flag_modified
+
+# Assuming you have a function to get the current user based on JWT identity
+def get_current_user():
+    user_id = get_jwt_identity()
+    return User.query.get(user_id)
+
+# Helper function to send emails
+def send_email(to_email, subject, message):
+    msg = Message(subject, recipients=[to_email], body=message)
+    mail.send(msg)
+
 @auth_blueprint.route('/transfer', methods=['POST'])
 @jwt_required()
 def transfer():
@@ -341,7 +356,7 @@ def transfer():
         amount = float(amount)
         if amount <= 0:
             return jsonify({"error": "Amount must be positive"}), 400
-    except ValueError:
+    except (ValueError, TypeError):
         return jsonify({"error": "Invalid amount format"}), 400
 
     # Ensure current user has sufficient balance
@@ -350,14 +365,11 @@ def transfer():
 
     # Step 1: Send authentication code to user's email
     auth_code = random.randint(100, 999)
-    msg = Message(
-        "Transfer Authentication Code",
-        recipients=[current_user.email],
-        body=f"Your transfer authentication code is: {auth_code}"
-    )
-    mail.send(msg)
+    subject = "Transfer Authentication Code"
+    message = f"Your transfer authentication code is: {auth_code}"
+    send_email(current_user.email, subject, message)
 
-    # Save the auth code temporarily
+    # Save the auth code and transfer details temporarily
     transfer_details = {
         'auth_code': auth_code,
         'receiver_name': receiver_name,
@@ -367,6 +379,7 @@ def transfer():
         'amount': amount
     }
     current_user.pending_transfer = transfer_details
+    flag_modified(current_user, 'pending_transfer')
     db.session.commit()
 
     return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
@@ -384,37 +397,42 @@ def verify_auth_code():
     if not auth_code:
         return jsonify({"error": "Authentication code is required"}), 400
 
-    # If using JSON column
+    # Retrieve pending transfer
     pending_transfer = current_user.pending_transfer
 
-    if not pending_transfer or pending_transfer.get('auth_code') != int(auth_code):
+    if not pending_transfer:
+        return jsonify({"error": "No pending transfer found"}), 400
+
+    try:
+        auth_code = int(auth_code)
+    except ValueError:
+        return jsonify({"error": "Invalid authentication code format"}), 400
+
+    if pending_transfer.get('auth_code') != auth_code:
         return jsonify({"error": "Invalid authentication code"}), 400
 
     # Authentication successful, generate 6-digit tax verification code
     tax_verification_code = random.randint(100000, 999999)
-    
+
     # Send the tax verification code to the user's email
     subject = "Your Tax Verification Code"
     message = f"Your tax verification code is: {tax_verification_code}"
     send_email(current_user.email, subject, message)
 
     # Save the tax verification code to pending_transfer
-    current_user.pending_transfer['tax_verification_code'] = tax_verification_code
+    pending_transfer['tax_verification_code'] = tax_verification_code
+    current_user.pending_transfer = pending_transfer
+    flag_modified(current_user, 'pending_transfer')
     db.session.commit()
 
     return jsonify({"message": "Authentication code verified. Tax verification code sent."}), 200
 
-import random
-from flask import jsonify, request
-from flask_jwt_extended import jwt_required
 
-# Endpoint to verify tax verification code and generate the final 3-digit code
 @auth_blueprint.route('/save_tin', methods=['POST'])
 @jwt_required()
 def save_tin():
     current_user = get_current_user()
     data = request.get_json()
-    #app.logger.info(f"Received data: {data}")
 
     # Verify the second (tax verification) authentication code
     tax_verification_code = data.get('tax_verification_code')
@@ -424,14 +442,18 @@ def save_tin():
 
     pending_transfer = current_user.pending_transfer
 
-    if not pending_transfer or pending_transfer.get('tax_verification_code') != int(tax_verification_code):
+    if not pending_transfer:
+        return jsonify({"error": "No pending transfer found"}), 400
+
+    try:
+        tax_verification_code = int(tax_verification_code)
+    except ValueError:
+        return jsonify({"error": "Invalid tax verification code format"}), 400
+
+    if pending_transfer.get('tax_verification_code') != tax_verification_code:
         return jsonify({"error": "Invalid tax verification code"}), 400
 
-    # Save the tax verification code to the user details
-    #current_user.tax_identification_number = tax_verification_code
-    #db.session.commit()
-
-    # Generate a 3-digit final authentication code
+    # Generate a 4-digit final authentication code
     final_auth_code = random.randint(1000, 9999)
 
     # Send the final authentication code to the user's email
@@ -440,10 +462,12 @@ def save_tin():
     send_email(current_user.email, subject, message)
 
     # Save the final authentication code in pending_transfer
-    current_user.pending_transfer['final_auth_code'] = final_auth_code
+    pending_transfer['final_auth_code'] = final_auth_code
+    current_user.pending_transfer = pending_transfer
+    flag_modified(current_user, 'pending_transfer')
     db.session.commit()
 
-    return jsonify({"message": "Tax verification code saved successfully. Final authentication code sent."}), 200
+    return jsonify({"message": "Tax verification code verified. Final authentication code sent."}), 200
 
 
 @auth_blueprint.route('/complete_transfer', methods=['POST'])
@@ -455,18 +479,24 @@ def complete_transfer():
     # Verify the final authentication code
     final_auth_code = data.get('final_auth_code')
 
-    # If no final auth code or pending transfer, return an error
-    if not final_auth_code or not current_user.pending_transfer:
+    if not final_auth_code:
         return jsonify({"error": "Final authentication code is required"}), 400
 
     pending_transfer = current_user.pending_transfer
 
-    # Verify the final authentication code
-    if pending_transfer.get('final_auth_code') != int(final_auth_code):
+    if not pending_transfer:
+        return jsonify({"error": "No pending transfer found"}), 400
+
+    try:
+        final_auth_code = int(final_auth_code)
+    except ValueError:
+        return jsonify({"error": "Invalid final authentication code format"}), 400
+
+    if pending_transfer.get('final_auth_code') != final_auth_code:
         return jsonify({"error": "Invalid final authentication code"}), 400
 
     # Complete the transfer
-    amount = pending_transfer['amount']
+    amount = float(pending_transfer['amount'])
     receiver_name = pending_transfer['receiver_name']
     receiver_bank = pending_transfer['receiver_bank']
     receiver_account_number = pending_transfer['receiver_account_number']
@@ -476,6 +506,10 @@ def complete_transfer():
     current_user.account_balance -= amount
 
     # In a real application, you would communicate with the bank's API here
+
+    # Clear pending transfer before committing
+    current_user.pending_transfer = None
+    flag_modified(current_user, 'pending_transfer')
     db.session.commit()
 
     # Add a notification about the completed transfer
@@ -487,11 +521,8 @@ def complete_transfer():
     )
     current_user.add_notification(notification_message)
 
-    # Clear pending transfer after completion
-    current_user.pending_transfer = None
-    db.session.commit()
-
     return jsonify({"message": "Transfer successful. You will receive the value in your bank account within 4-7 days."}), 200
+
 
 
 # Forgot Password Request
