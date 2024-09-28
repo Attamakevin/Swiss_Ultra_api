@@ -424,7 +424,7 @@ def save_tin():
 
     pending_transfer = current_user.pending_transfer
 
-    if not pending_transfer or pending_transfer.get('second_auth_code') != int(tax_verification_code):
+    if not pending_transfer or pending_transfer.get('tax_verification_code') != int(tax_verification_code):
         return jsonify({"error": "Invalid tax verification code"}), 400
 
     # Save the tax verification code to the user details
