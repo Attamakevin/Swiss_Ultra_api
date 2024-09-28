@@ -414,26 +414,31 @@ def save_tin():
     current_user = get_current_user()
     data = request.get_json()
 
-    # Verify the second (tax verification) authentication code
+    # Verify if the tax verification code is present in the request
     tax_verification_code = data.get('tax_verification_code')
 
     if not tax_verification_code:
-        return jsonify({"error": "Tax verification code is required"}), 400
+        return jsonify({"error": "Tax verification code is required."}), 400
 
     pending_transfer = current_user.pending_transfer
 
     if not pending_transfer:
         return jsonify({"error": "No pending transfer found."}), 400
 
-  
-    # Check if the tax verification code is an integer in both places
-    try:
-        saved_tax_verification_code = pending_transfer.get('tax_verification_code')
-        input_tax_verification_code = tax_verification_code
-    except (ValueError, TypeError) as e:
-        return jsonify({"error": "Invalid tax verification code format."}), 400
+    # Retrieve the saved tax verification code from pending_transfer
+    saved_tax_verification_code = pending_transfer.get('tax_verification_code')
 
-   
+    if not saved_tax_verification_code:
+        return jsonify({"error": "No tax verification code found in pending transfer."}), 400
+
+    # Ensure both the saved and input codes are integers
+    try:
+        saved_tax_verification_code = int(saved_tax_verification_code)
+        input_tax_verification_code = int(tax_verification_code)
+    except ValueError:
+        return jsonify({"error": "Invalid tax verification code format. Must be numeric."}), 400
+
+    # Compare the saved tax code with the input tax code
     if saved_tax_verification_code != input_tax_verification_code:
         return jsonify({"error": "Invalid tax verification code."}), 400
 
@@ -450,7 +455,7 @@ def save_tin():
     current_user.pending_transfer = pending_transfer  # Save changes
     db.session.commit()
 
-    return jsonify({"message": "Tax verification code saved successfully. Final authentication code sent."}), 200
+    return jsonify({"message": "Tax verification code verified successfully. Final authentication code sent."}), 200
 
 
 
