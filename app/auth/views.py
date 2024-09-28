@@ -408,13 +408,11 @@ import random
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required
 
-# Endpoint to verify tax verification code and generate the final 3-digit code
 @auth_blueprint.route('/save_tin', methods=['POST'])
 @jwt_required()
 def save_tin():
     current_user = get_current_user()
     data = request.get_json()
-    #app.logger.info(f"Received data: {data}")
 
     # Verify the second (tax verification) authentication code
     tax_verification_code = data.get('tax_verification_code')
@@ -424,14 +422,22 @@ def save_tin():
 
     pending_transfer = current_user.pending_transfer
 
-    if not pending_transfer or pending_transfer.get('tax_verification_code') != int(tax_verification_code):
-        return jsonify({"error": "Invalid tax verification code"}), 400
+    if not pending_transfer:
+        return jsonify({"error": "No pending transfer found."}), 400
 
-    # Save the tax verification code to the user details
-    #current_user.tax_identification_number = tax_verification_code
-    #db.session.commit()
+  
+    # Check if the tax verification code is an integer in both places
+    try:
+        saved_tax_verification_code = int(pending_transfer.get('tax_verification_code'))
+        input_tax_verification_code = int(tax_verification_code)
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": "Invalid tax verification code format."}), 400
 
-    # Generate a 3-digit final authentication code
+   
+    if saved_tax_verification_code != input_tax_verification_code:
+        return jsonify({"error": "Invalid tax verification code."}), 400
+
+    # Generate a 4-digit final authentication code
     final_auth_code = random.randint(1000, 9999)
 
     # Send the final authentication code to the user's email
@@ -440,10 +446,12 @@ def save_tin():
     send_email(current_user.email, subject, message)
 
     # Save the final authentication code in pending_transfer
-    current_user.pending_transfer['final_auth_code'] = final_auth_code
+    pending_transfer['final_auth_code'] = final_auth_code
+    current_user.pending_transfer = pending_transfer  # Save changes
     db.session.commit()
 
     return jsonify({"message": "Tax verification code saved successfully. Final authentication code sent."}), 200
+
 
 
 @auth_blueprint.route('/complete_transfer', methods=['POST'])
