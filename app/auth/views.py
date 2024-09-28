@@ -414,6 +414,7 @@ from flask_jwt_extended import jwt_required
 def save_tin():
     current_user = get_current_user()
     data = request.get_json()
+    app.logger.info(f"Received data: {data}")
 
     # Verify the second (tax verification) authentication code
     tax_verification_code = data.get('tax_verification_code')
@@ -431,7 +432,7 @@ def save_tin():
     db.session.commit()
 
     # Generate a 3-digit final authentication code
-    final_auth_code = random.randint(100, 999)
+    final_auth_code = random.randint(1000, 9999)
 
     # Send the final authentication code to the user's email
     subject = "Final Authentication Code"
@@ -609,7 +610,7 @@ def send_message():
     # Send email to support
     try:
         msg = Message(subject=email_subject,
-                      recipients=["support@swissultra.com"],
+                      recipients=["support@switzultra.com"],
                       body=email_body)
 
         mail.send(msg)
