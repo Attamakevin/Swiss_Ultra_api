@@ -428,8 +428,8 @@ def save_tin():
   
     # Check if the tax verification code is an integer in both places
     try:
-        saved_tax_verification_code = int(pending_transfer.get('tax_verification_code'))
-        input_tax_verification_code = int(tax_verification_code)
+        saved_tax_verification_code = pending_transfer.get('tax_verification_code')
+        input_tax_verification_code = tax_verification_code
     except (ValueError, TypeError) as e:
         return jsonify({"error": "Invalid tax verification code format."}), 400
 
