@@ -14,6 +14,7 @@ class User(db.Model):
     last_credited_amount = db.Column(db.Float, default=0.00)
     tax_identification_number = db.Column(db.String(20), nullable=True)  # Optional TIN storage
     transfers = db.relationship('Transfer', backref='user', lazy=True)  # Relationship with Transfer model
+    notifications = db.relationship('Notification', backref='user', lazy=True)
 
     def set_password(self, password):
         """Hash the password and store it in the password_hash field."""
@@ -44,7 +45,7 @@ class Transfer(db.Model):
     tax_verification_code = db.Column(db.Integer, nullable=True)
     final_auth_code = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    notifications = db.relationship('Notification', backref='user', lazy=True)
+    
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Define relationship with Notification model
