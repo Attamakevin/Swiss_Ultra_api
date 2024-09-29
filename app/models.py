@@ -44,6 +44,7 @@ class Transfer(db.Model):
     tax_verification_code = db.Column(db.Integer, nullable=True)
     final_auth_code = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    notifications = db.relationship('Notification', backref='user', lazy=True)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Define relationship with Notification model

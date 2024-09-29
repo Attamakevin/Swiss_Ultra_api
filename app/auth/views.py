@@ -2,7 +2,7 @@
 
 from flask import Blueprint, request, jsonify,url_for
 from app import db, bcrypt, mail
-from app.models import User
+from app.models import User, Transfer, Notification
 from flask_jwt_extended import (
     create_access_token, create_refresh_token, jwt_required, get_jwt_identity, 
     get_jwt,decode_token
