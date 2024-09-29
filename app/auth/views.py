@@ -323,9 +323,9 @@ def get_notifications():
 @jwt_required()
 def transfer():
     current_user = get_current_user()
+    data = request.get_json()
 
     # Get transfer details from request
-    data = request.get_json()
     receiver_bank = data.get('receiver_bank')
     receiver_name = data.get('receiver_name')
     receiver_account_number = data.get('receiver_account_number')
@@ -357,19 +357,21 @@ def transfer():
     )
     mail.send(msg)
 
-    # Save the auth code temporarily
-    transfer_details = {
-        'auth_code': auth_code,
-        'receiver_name': receiver_name,
-        'receiver_bank': receiver_bank,
-        'receiver_account_number': receiver_account_number,
-        'routing_number': routing_number,
-        'amount': amount
-    }
-    current_user.pending_transfer = transfer_details
+    # Create a new pending transfer
+    transfer = Transfer(
+        user_id=current_user.id,
+        receiver_name=receiver_name,
+        receiver_bank=receiver_bank,
+        receiver_account_number=receiver_account_number,
+        routing_number=routing_number,
+        amount=amount,
+        tax_verification_code=auth_code  # Save the first code here
+    )
+    db.session.add(transfer)
     db.session.commit()
 
     return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
+
 
 
 @auth_blueprint.route('/verify_auth_code', methods=['POST'])
@@ -378,19 +380,18 @@ def verify_auth_code():
     current_user = get_current_user()
     data = request.get_json()
 
-    # Verify the authentication code
     auth_code = data.get('auth_code')
 
     if not auth_code:
         return jsonify({"error": "Authentication code is required"}), 400
 
-    # If using JSON column
-    pending_transfer = current_user.pending_transfer
+    # Get the latest pending transfer
+    transfer = Transfer.query.filter_by(user_id=current_user.id, status="pending").order_by(Transfer.created_at.desc()).first()
 
-    if not pending_transfer or pending_transfer.get('auth_code') != int(auth_code):
-        return jsonify({"error": "Invalid authentication code"}), 400
+    if not transfer or transfer.tax_verification_code != int(auth_code):
+        return jsonify({"error": "Invalid authentication code."}), 400
 
-    # Authentication successful, generate 6-digit tax verification code
+    # Generate a 6-digit tax verification code
     tax_verification_code = random.randint(100000, 999999)
     
     # Send the tax verification code to the user's email
@@ -398,8 +399,8 @@ def verify_auth_code():
     message = f"Your tax verification code is: {tax_verification_code}"
     send_email(current_user.email, subject, message)
 
-    # Save the tax verification code to pending_transfer
-    current_user.pending_transfer['tax_verification_code'] = (tax_verification_code)
+    # Save the tax verification code
+    transfer.tax_verification_code = tax_verification_code
     db.session.commit()
 
     return jsonify({"message": "Authentication code verified. Tax verification code sent."}), 200
@@ -414,32 +415,15 @@ def save_tin():
     current_user = get_current_user()
     data = request.get_json()
 
-    # Verify if the tax verification code is present in the request
     tax_verification_code = data.get('tax_verification_code')
 
     if not tax_verification_code:
-        return jsonify({"error": "Tax verification code is required."}), 400
+        return jsonify({"error": "Tax verification code is required"}), 400
 
-    pending_transfer = current_user.pending_transfer
+    # Get the latest pending transfer
+    transfer = Transfer.query.filter_by(user_id=current_user.id, status="pending").order_by(Transfer.created_at.desc()).first()
 
-    if not pending_transfer:
-        return jsonify({"error": "No pending transfer found."}), 400
-
-    # Retrieve the saved tax verification code from pending_transfer
-    saved_tax_verification_code = pending_transfer.get('tax_verification_code')
-
-    if not saved_tax_verification_code:
-        return jsonify({"error": "No tax verification code found in pending transfer."}), 400
-
-    # Ensure both the saved and input codes are integers
-    try:
-        saved_tax_verification_code = int(saved_tax_verification_code)
-        input_tax_verification_code = int(tax_verification_code)
-    except ValueError:
-        return jsonify({"error": "Invalid tax verification code format. Must be numeric."}), 400
-
-    # Compare the saved tax code with the input tax code
-    if saved_tax_verification_code != input_tax_verification_code:
+    if not transfer or transfer.tax_verification_code != int(tax_verification_code):
         return jsonify({"error": "Invalid tax verification code."}), 400
 
     # Generate a 4-digit final authentication code
@@ -450,12 +434,11 @@ def save_tin():
     message = f"Your final authentication code is: {final_auth_code}"
     send_email(current_user.email, subject, message)
 
-    # Save the final authentication code in pending_transfer
-    pending_transfer['final_auth_code'] = final_auth_code
-    current_user.pending_transfer = pending_transfer  # Save changes
+    # Save the final authentication code
+    transfer.final_auth_code = final_auth_code
     db.session.commit()
 
-    return jsonify({"message": "Tax verification code verified successfully. Final authentication code sent."}), 200
+    return jsonify({"message": "Tax verification code saved successfully. Final authentication code sent."}), 200
 
 
 
@@ -465,47 +448,34 @@ def complete_transfer():
     current_user = get_current_user()
     data = request.get_json()
 
-    # Verify the final authentication code
     final_auth_code = data.get('final_auth_code')
 
-    # If no final auth code or pending transfer, return an error
-    if not final_auth_code or not current_user.pending_transfer:
+    if not final_auth_code:
         return jsonify({"error": "Final authentication code is required"}), 400
 
-    pending_transfer = current_user.pending_transfer
+    # Get the latest pending transfer
+    transfer = Transfer.query.filter_by(user_id=current_user.id, status="pending").order_by(Transfer.created_at.desc()).first()
 
-    # Verify the final authentication code
-    if pending_transfer.get('final_auth_code') != int(final_auth_code):
-        return jsonify({"error": "Invalid final authentication code"}), 400
-
-    # Complete the transfer
-    amount = pending_transfer['amount']
-    receiver_name = pending_transfer['receiver_name']
-    receiver_bank = pending_transfer['receiver_bank']
-    receiver_account_number = pending_transfer['receiver_account_number']
-    routing_number = pending_transfer['routing_number']
+    if not transfer or transfer.final_auth_code != int(final_auth_code):
+        return jsonify({"error": "Invalid final authentication code."}), 400
 
     # Deduct the amount from the user's account balance
-    current_user.account_balance -= amount
+    current_user.account_balance -= transfer.amount
 
-    # In a real application, you would communicate with the bank's API here
+    # Mark transfer as completed
+    transfer.status = "completed"
     db.session.commit()
 
     # Add a notification about the completed transfer
-    formatted_amount = f"{amount:,.2f}"
+    formatted_amount = f"{transfer.amount:,.2f}"
     notification_message = (
-        f"Transfer of ${formatted_amount} to {receiver_name} "
-        f"(Account: {receiver_account_number}, Bank: {receiver_bank}) "
+        f"Transfer of ${formatted_amount} to {transfer.receiver_name} "
+        f"(Account: {transfer.receiver_account_number}, Bank: {transfer.receiver_bank}) "
         "has been successfully processed. You will receive the value in your bank account within 4-7 days."
     )
     current_user.add_notification(notification_message)
 
-    # Clear pending transfer after completion
-    current_user.pending_transfer = None
-    db.session.commit()
-
     return jsonify({"message": "Transfer successful. You will receive the value in your bank account within 4-7 days."}), 200
-
 
 # Forgot Password Request
 @auth_blueprint.route('/forgot_password', methods=['POST'])

@@ -4,7 +4,6 @@ from app import db, bcrypt
 from sqlalchemy.dialects.postgresql import JSON
 
 class User(db.Model):
- 
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(150), unique=True, nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
@@ -14,9 +13,30 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     account_balance = db.Column(db.Float, default=0.00)
     last_credited_amount = db.Column(db.Float, default=0.00)
-    tax_identification_number = db.Column(db.String(20), nullable=True)
-    auth_code = db.Column(db.Integer, nullable=True)
-    pending_transfer = db.Column(JSON, nullable=True)
+    tax_identification_number = db.Column(db.String(20), nullable=True)  # Optional TIN storage
+    # Remove auth_code here
+    transfers = db.relationship('Transfer', backref='user', lazy=True)  # Relationship with Transfer model
+class TransactionLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Link to user
+    type = db.Column(db.String(20), nullable=False)  # Deposit, Withdrawal, Transfer
+    amount = db.Column(db.Float, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    description = db.Column(db.String(250), nullable=True)  # Optional description for transaction
+
+class Transfer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Link to user
+    receiver_name = db.Column(db.String(150), nullable=False)
+    receiver_bank = db.Column(db.String(150), nullable=False)
+    receiver_account_number = db.Column(db.String(20), nullable=False)
+    routing_number = db.Column(db.String(20), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.String(20), default="pending")  # Status: pending, completed, failed
+    tax_verification_code = db.Column(db.Integer, nullable=True)
+    final_auth_code = db.Column(db.Integer, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Define relationship with Notification model
     notifications = db.relationship('Notification', backref='user', lazy=True)
