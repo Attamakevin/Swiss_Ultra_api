@@ -35,7 +35,7 @@ class TransactionLog(db.Model):
 class Transfer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    notifications = db.relationship('Notification', backref='transfer', lazy=True)
+    #notifications = db.relationship('Notification', backref='transfer', lazy=True)
     receiver_name = db.Column(db.String(150), nullable=False)
     receiver_bank = db.Column(db.String(150), nullable=False)
     receiver_account_number = db.Column(db.String(20), nullable=False)
