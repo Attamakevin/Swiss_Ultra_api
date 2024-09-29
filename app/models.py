@@ -13,8 +13,8 @@ class User(db.Model):
     account_balance = db.Column(db.Float, default=0.00)
     last_credited_amount = db.Column(db.Float, default=0.00)
     tax_identification_number = db.Column(db.String(20), nullable=True)  # Optional TIN storage
-    transfers = db.relationship('Transfer', backref='user', lazy=True)  # Relationship with Transfer model
-    notifications = db.relationship('Notification', backref='user', lazy=True)
+    transfers = db.relationship('Transfer', backref='user', lazy=True)
+    notifications = db.relationship('Notification', backref='recipient', lazy=True)  # Change backref name
 
     def set_password(self, password):
         """Hash the password and store it in the password_hash field."""
@@ -23,6 +23,7 @@ class User(db.Model):
     def check_password(self, password):
         """Check the provided password against the stored password hash."""
         return bcrypt.check_password_hash(self.password_hash, password)
+
 
 class TransactionLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
