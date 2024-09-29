@@ -466,17 +466,17 @@ def complete_transfer():
     transfer.status = "completed"
     db.session.commit()
 
-    # Add a notification about the completed transfer
     formatted_amount = f"{transfer.amount:,.2f}"
     notification_message = (
         f"Transfer of ${formatted_amount} to {transfer.receiver_name} "
         f"(Account: {transfer.receiver_account_number}, Bank: {transfer.receiver_bank}) "
         "has been successfully processed. You will receive the value in your bank account within 4-7 days."
     )
+    
+    # Add notification to the user about the transfer
     current_user.add_notification(notification_message)
 
     return jsonify({"message": "Transfer successful. You will receive the value in your bank account within 4-7 days."}), 200
-
 # Forgot Password Request
 @auth_blueprint.route('/forgot_password', methods=['POST'])
 def forgot_password():
