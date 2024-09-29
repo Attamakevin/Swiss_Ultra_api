@@ -35,7 +35,7 @@ class TransactionLog(db.Model):
 class Transfer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    #notifications = db.relationship('Notification', backref='transfer', lazy=True)
+    notifications = db.relationship('Notification', backref='transfer', lazy=True)  # Keeping this for transfer notifications
     receiver_name = db.Column(db.String(150), nullable=False)
     receiver_bank = db.Column(db.String(150), nullable=False)
     receiver_account_number = db.Column(db.String(20), nullable=False)
@@ -45,17 +45,13 @@ class Transfer(db.Model):
     tax_verification_code = db.Column(db.Integer, nullable=True)
     final_auth_code = db.Column(db.Integer, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Define relationship with Notification model
-    notifications = db.relationship('Notification', backref='user', lazy=True)
-
-
     def add_notification(self, message):
-        notification = Notification(message=message, user_id=self.id)
+        notification = Notification(message=message, user_id=self.user_id)  # Use user_id for the sender
         db.session.add(notification)
         db.session.commit()
+
 
 
 class Notification(db.Model):
@@ -64,4 +60,4 @@ class Notification(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     transfer_id = db.Column(db.Integer, db.ForeignKey('transfer.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
+    user = db.relationship('User', backref='notifications', lazy=True)  # Keep this as is
