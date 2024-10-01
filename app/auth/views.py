@@ -542,6 +542,8 @@ def reset_password(token):
         return jsonify({"error": "User not found"}), 404
 
     # Update the user's password (hash it before saving)
+    from werkzeug.security import generate_password_hash
+
     user.password = generate_password_hash(new_password).decode('utf-8')
     db.session.commit()
 
