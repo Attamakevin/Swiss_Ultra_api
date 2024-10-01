@@ -49,27 +49,28 @@ def register():
     db.session.commit()
 
     # Send a welcome email with the account number
+    # Send a welcome email with the account number
     try:
         msg = Message(
-    "Welcome to SwissUltra",
-    recipients=[email]
-)
+            "Welcome to SwissUltra",
+            recipients=[email]
+        )
 
-msg.html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome Email</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+        msg.html = f"""<!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome Email</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
     <div style="background-color: #1c3d5a; color: white; text-align: center; padding: 10px 0; font-size: 24px; font-weight: bold; border-radius: 8px 8px 0 0;">
-      Welcome to SwissUltra
+          Welcome to SwitzUltra
     </div>
     <div style="padding: 20px;">
       <p>Hi {user.user_name},</p>
-      <p>Welcome to SwissUltra! Your account number is <strong>{new_user.account_number}</strong>. We're thrilled to have you with us.</p>
+      <p>Welcome to SwitzUltra! Your account number is <strong>{new_user.account_number}</strong>. We're thrilled to have you with us.</p>
       <p>Explore your dashboard and get started on enjoying the features and benefits we offer.</p>
       <p>If you have any questions, feel free to reach out to our support team at any time.</p>
     </div>
@@ -81,12 +82,12 @@ msg.html = f"""<!DOCTYPE html>
 </html>
 """
 
-mail.send(msg)
+        mail.send(msg)
 
     except Exception as e:
-        return jsonify({"error": "User registered but failed to send email"}), 500
+         return jsonify({"error": "User registered but failed to send email", "details": str(e)}), 500
 
-    return jsonify({"message": "User registered successfully", "account_number": new_user.account_number}), 201
+return jsonify({"message": "User registered successfully", "account_number": new_user.account_number}), 201
 
 @auth_blueprint.route('/login', methods=['POST'])
 def login():
