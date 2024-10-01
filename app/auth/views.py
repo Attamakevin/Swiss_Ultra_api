@@ -507,7 +507,7 @@ def save_tin():
         return jsonify({"error": "Invalid tax verification code."}), 400
 
     # Generate a 4-digit final authentication code
-     final_auth_code = random.randint(1000, 9999)
+    final_auth_code = random.randint(1000, 9999)
 
     # Send the final authentication code to the user's email
     subject = "Final Authentication Code"
