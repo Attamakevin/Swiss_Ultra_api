@@ -430,7 +430,7 @@ def transfer():
     db.session.add(transfer)
     db.session.commit()
 
-        return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
+    return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
 
 
 
