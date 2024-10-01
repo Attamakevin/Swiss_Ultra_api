@@ -51,12 +51,8 @@ def register():
     # Send a welcome email with the account number
     # Send a welcome email with the account number
     try:
-        msg = Message(
-            "Welcome to SwissUltra",
-            recipients=[email]
-        )
-
-        msg.html = f"""<!DOCTYPE html>
+        subject = "Welcome to SwissUltra"
+        message = f"""<!DOCTYPE html>
     <html lang="en">
     <head>
     <meta charset="UTF-8">
@@ -82,7 +78,8 @@ def register():
 </html>
 """
 
-        mail.send(msg)
+         send_email(current_user.email, subject, message)
+
 
     except Exception as e:
          return jsonify({"error": "User registered but failed to send email", "details": str(e)}), 500
@@ -383,12 +380,9 @@ def transfer():
 
     # Step 1: Send authentication code to user's email
     auth_code = random.randint(100, 999)
-    msg = Message(
-    "Transfer Authentication Code",
-    recipients=[current_user.email]
-    )
+    subject = "Transfer Authentication Code"
 
-    msg.html = f"""
+    message = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -415,7 +409,8 @@ def transfer():
 </html>
 """
 
-    mail.send(msg)
+     send_email(current_user.email, subject, message)
+
 
     # Create a new pending transfer
     transfer = Transfer(
