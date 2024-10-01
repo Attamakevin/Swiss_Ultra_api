@@ -694,8 +694,9 @@ def decode_reset_token(token):
         raise Exception("Invalid or expired token")
 
 # Helper function to send emails
-def send_email(to, subject, body):
-    msg = Message(subject, recipients=[to], body=body)
+def send_email(recipient, subject, html_message):
+    msg = Message(subject, recipients=[recipient])
+    msg.html = html_message  # Set the HTML content here
     mail.send(msg)
 
 @auth_blueprint.route('/send_message', methods=['POST'])
