@@ -54,7 +54,30 @@ def register():
             "Welcome to SwissUltra",
             recipients=[email]
         )
-        msg.body = f"Dear {username},\n\nWelcome to SwissUltra Account!\n\nYour account number is: {new_user.account_number}\n\nThank you for joining us."
+        msg.body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome Email</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+    <div style="background-color: #1c3d5a; color: white; text-align: center; padding: 10px 0; font-size: 24px; font-weight: bold; border-radius: 8px 8px 0 0;">
+      Welcome to [Company Name]
+    </div>
+    <div style="padding: 20px;">
+      <p>Hi {user.user_name},</p>
+      <p>Welcome to Switzultra! your account number is {new_user.account_number} We're thrilled to have you with us.</p>
+      <p>Explore your dashboard and get started on [some feature or benefit of your service].</p>
+      <p>If you have any questions, feel free to reach out to our support team at any time.</p>
+    </div>
+    <div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
+      &copy; 2024 Switzultra. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>"""f"Dear {username},\n\nWelcome to SwissUltra Account!\n\nYour account number is: {new_user.account_number}\n\nThank you for joining us."
         mail.send(msg)
     except Exception as e:
         return jsonify({"error": "User registered but failed to send email"}), 500
@@ -358,7 +381,33 @@ def transfer():
     msg = Message(
         "Transfer Authentication Code",
         recipients=[current_user.email],
-        body=f"Your transfer authentication code is: {auth_code}"
+        body=f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTP Code</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+    <div style="background-color: #1c3d5a; color: white; text-align: center; padding: 10px 0; font-size: 24px; font-weight: bold; border-radius: 8px 8px 0 0;">
+      Your OTP Code
+    </div>
+    <div style="padding: 20px; text-align: center;">
+      <p>Hello,</p>
+      <p>Your one-time password (OTP) is:</p>
+      <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">{final_auth_code}</p>
+      <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
+    </div>
+    <div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
+      If you did not request this, please ignore this email.
+    </div>
+  </div>
+</body>
+</html>
+"""
+
     )
     mail.send(msg)
 
@@ -401,7 +450,33 @@ def verify_auth_code():
     
     # Send the tax verification code to the user's email
     subject = "Your Tax Verification Code"
-    message = f"Your tax verification code is: {tax_verification_code}"
+    message = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTP Code</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+    <div style="background-color: #1c3d5a; color: white; text-align: center; padding: 10px 0; font-size: 24px; font-weight: bold; border-radius: 8px 8px 0 0;">
+      Your OTP Code
+    </div>
+    <div style="padding: 20px; text-align: center;">
+      <p>Hello,</p>
+      <p>Your one-time password (OTP) is:</p>
+      <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">{tax_verification_code}</p>
+      <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
+    </div>
+    <div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
+      If you did not request this, please ignore this email.
+    </div>
+  </div>
+</body>
+</html>
+"""
+
     send_email(current_user.email, subject, message)
 
     # Save the tax verification code
@@ -432,11 +507,35 @@ def save_tin():
         return jsonify({"error": "Invalid tax verification code."}), 400
 
     # Generate a 4-digit final authentication code
-    final_auth_code = random.randint(1000, 9999)
+     final_auth_code = random.randint(1000, 9999)
 
     # Send the final authentication code to the user's email
     subject = "Final Authentication Code"
-    message = f"Your final authentication code is: {final_auth_code}"
+    message = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTP Code</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+    <div style="background-color: #1c3d5a; color: white; text-align: center; padding: 10px 0; font-size: 24px; font-weight: bold; border-radius: 8px 8px 0 0;">
+      Your OTP Code
+    </div>
+    <div style="padding: 20px; text-align: center;">
+      <p>Hello,</p>
+      <p>Your one-time password (OTP) is:{final_auth_code}</p>
+      <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">123456</p>
+      <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
+    </div>
+    <div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
+      If you did not request this, please ignore this email.
+    </div>
+  </div>
+</body>
+</html>"""
+    #message = f"Your final authentication code is: {final_auth_code}"
     send_email(current_user.email, subject, message)
 
     # Save the final authentication code
@@ -505,18 +604,43 @@ def forgot_password():
 
         # Prepare the email content
         subject = "Password Reset Request"
-        message = f"""
-        Hi {user.username},
+        message = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Password Reset</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+    <div style="background-color: #1c3d5a; color: white; text-align: center; padding: 10px 0; font-size: 24px; font-weight: bold; border-radius: 8px 8px 0 0;">
+      Password Reset Request
+    </div>
+    <div style="padding: 20px;">
+      <p>Dear {user.username},</p>
+      <p>We received a request to reset your password. Click the button below to reset your password:</p>
+      <div style="text-align: center; margin: 20px;">
+        <a href=" {reset_url}" style="background-color: #1c3d5a; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+      </div>
+      <p>If you didn't request this, you can safely ignore this email.</p>
+    </div>
+    <div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
+      &copy; 2024 Company. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>"""#f"""
+        #Hi {user.username},
 
-        We received a request to reset your password. You can reset your password by clicking the link below:
+        #We received a request to reset your password. You can reset your password by clicking the link below:
         
-        {reset_url}
+        #{reset_url}
 
-        If you did not request a password reset, please ignore this email or contact support if you have any questions.
+        #If you did not request a password reset, please ignore this email or contact support if you have any questions.
 
-        Thanks,
-        Your Team
-        """
+        #Thanks,
+        #Your Team
+        #"""
 
         # Send the email with the reset link
         send_email(user.email, subject, message)
