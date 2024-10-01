@@ -549,7 +549,7 @@ def reset_password(token):
     # Update the user's password (hash it before saving)
     from werkzeug.security import generate_password_hash
 
-    user.password = generate_password_hash(new_password)
+    user.set_password(new_password)
     db.session.commit()
 
     return jsonify({"message": "Password reset successful"}), 200
