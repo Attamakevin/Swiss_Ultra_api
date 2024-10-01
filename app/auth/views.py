@@ -54,7 +54,7 @@ def register():
             "Welcome to SwissUltra",
             recipients=[email]
         )
-        msg.body = f"""<!DOCTYPE html>
+        msg.html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -381,7 +381,7 @@ def transfer():
     msg = Message(
         "Transfer Authentication Code",
         recipients=[current_user.email],
-        body=f"""
+        msg.htm = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
