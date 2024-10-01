@@ -397,7 +397,7 @@ def transfer():
     <div style="padding: 20px; text-align: center;">
       <p>Hello,</p>
       <p>Your one-time password (OTP) is:</p>
-      <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">{final_auth_code}</p>
+      <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">{auth_code}</p>
       <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
     </div>
     <div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
@@ -512,6 +512,7 @@ def save_tin():
     # Send the final authentication code to the user's email
     subject = "Final Authentication Code"
     message = f"""<!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -525,8 +526,8 @@ def save_tin():
     </div>
     <div style="padding: 20px; text-align: center;">
       <p>Hello,</p>
-      <p>Your one-time password (OTP) is:{final_auth_code}</p>
-      <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">123456</p>
+      <p>Your one-time password (OTP) is:</p>
+      <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">{final_auth_code}</p>
       <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
     </div>
     <div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
