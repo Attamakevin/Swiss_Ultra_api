@@ -407,11 +407,13 @@ def transfer():
     </div>
   </div>
 </body>
-</html>
-"""
+</html>"""
+    print(f"Sending email to: {current_user.email}")
+
 
     try:
         send_email(current_user.email, subject, message)
+        print("Transfer email sent.")
     except Exception as e:
         print( f"Failed to send email: {str(e)}")
         return jsonify({"error": f"Failed to send email: {str(e)}"}), 500
