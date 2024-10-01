@@ -309,16 +309,21 @@ def get_notifications():
     if not user.notifications:
         return jsonify({"notifications": []}), 200
 
-    # Map each notification to include additional data if necessary
-    notifications = [
-        {
-            "message": notification.message,  # Access directly
-            "timestamp": notification.timestamp.isoformat() if isinstance(notification.timestamp, datetime) else str(notification.timestamp)
-        }
-        for notification in user.notifications
-    ]
+    # Sort notifications by timestamp in descending order (newest first)
+    notifications = sorted(
+        [
+            {
+                "message": notification.message,  # Access directly
+                "timestamp": notification.timestamp.isoformat() if isinstance(notification.timestamp, datetime) else str(notification.timestamp)
+            }
+            for notification in user.notifications
+        ],
+        key=lambda x: x['timestamp'], 
+        reverse=True  # This makes the latest notification come first
+    )
 
     return jsonify({"notifications": notifications}), 200
+
 @auth_blueprint.route('/transfer', methods=['POST'])
 @jwt_required()
 def transfer():
