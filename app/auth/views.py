@@ -87,7 +87,7 @@ def register():
     except Exception as e:
          return jsonify({"error": "User registered but failed to send email", "details": str(e)}), 500
 
-return jsonify({"message": "User registered successfully", "account_number": new_user.account_number}), 201
+    return jsonify({"message": "User registered successfully", "account_number": new_user.account_number}), 201
 
 @auth_blueprint.route('/login', methods=['POST'])
 def login():
