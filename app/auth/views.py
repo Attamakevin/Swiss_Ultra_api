@@ -383,43 +383,85 @@ def transfer():
     auth_code = random.randint(100, 999)
     subject = "Transfer Authentication Code"
 
-    message = f"Your OTP Code is {auth_code}. Please enter this code to proceed with the transfer."#f"""
-#<!DOCTYPE html>
-#<html lang="en">
-#<head>
-  #<meta charset="UTF-8">
-  #<meta name="viewport" content="width=device-width, initial-scale=1.0">
-  #<title>OTP Code</title>
-#</head>
-#<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
- # <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
-  #  <div style="background-color: #1c3d5a; color: white; text-align: center; padding: 10px 0; font-size: 24px; font-weight: bold; border-radius: 8px 8px 0 0;">
-   #   Your OTP Code
-#    </div>
-#    <div style="padding: 20px; text-align: center;">
- #     <p>Hello,</p>
-  #    <p>Your one-time password (OTP) is:</p>
-   #   <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">{auth_code}</p>
-    #  <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
-    #</div>
-    #<div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
-#      If you did not request this, please ignore this email.
- #   </div>
-  #</div>
-#</body>
-#</html>"""
-    print(f"Sending email to: {current_user.email}")
+# HTML message
+    message = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTP Code</title>
+  <style>
+    body {{
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+    }}
+    .container {{
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }}
+    .header {{
+      background-color: #1c3d5a;
+      color: white;
+      text-align: center;
+      padding: 10px 0;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 8px 8px 0 0;
+    }}
+    .content {{
+      padding: 20px;
+      text-align: center;
+    }}
+    .otp-code {{
+      font-size: 24px;
+      font-weight: bold;
+      color: #1c3d5a;
+      letter-spacing: 3px;
+    }}
+    .footer {{
+      text-align: center;
+      padding: 10px;
+      font-size: 12px;
+      color: #777;
+    }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      Your OTP Code
+    </div>
+    <div class="content">
+      <p>Hello,</p>
+      <p>Your one-time password (OTP) is:</p>
+      <p class="otp-code">{auth_code}</p>
+      <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
+    </div>
+    <div class="footer">
+      If you did not request this, please ignore this email.
+    </div>
+  </div>
+</body>
+</html>
+"""
 
+    print(f"Sending email to: {current_user.email}")
 
     try:
         send_email(current_user.email, subject, message)
         print("Transfer email sent.")
     except Exception as e:
-        print( f"Failed to send email: {str(e)}")
+        print(f"Failed to send email: {str(e)}")
         return jsonify({"error": f"Failed to send email: {str(e)}"}), 500
 
-
-    # Create a new pending transfer
+# Create a new pending transfer
     transfer = Transfer(
         user_id=current_user.id,
         receiver_name=receiver_name,
@@ -428,11 +470,12 @@ def transfer():
         routing_number=routing_number,
         amount=amount,
         tax_verification_code=auth_code  # Save the first code here
-        )
+    )
     db.session.add(transfer)
     db.session.commit()
 
     return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
+
 
 
 
