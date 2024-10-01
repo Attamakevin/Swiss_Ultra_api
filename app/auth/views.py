@@ -386,9 +386,9 @@ def transfer():
     msg = Message(
     "Transfer Authentication Code",
     recipients=[current_user.email]
-)
+    )
 
-msg.html = f"""
+    msg.html = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -415,7 +415,7 @@ msg.html = f"""
 </html>
 """
 
-mail.send(msg)
+    mail.send(msg)
 
     # Create a new pending transfer
     transfer = Transfer(
