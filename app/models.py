@@ -14,7 +14,7 @@ class User(db.Model):
     last_credited_amount = db.Column(db.Float, default=0.00)
     tax_identification_number = db.Column(db.String(20), nullable=True)  # Optional TIN storage
     transfers = db.relationship('Transfer', backref='user', lazy=True)
-    notifications_list = db.relationship('Notification', backref='user_notifications', lazy=True, overlaps="notifications,user_notifications")
+    notifications = db.relationship('Notification', backref='user', lazy=True)
 
     def set_password(self, password):
         """Hash the password and store it in the password_hash field."""
@@ -69,4 +69,4 @@ class Notification(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     transfer_id = db.Column(db.Integer, db.ForeignKey('transfer.id'))  # Link to the transfer, if applicable
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Link to the user
-    user = db.relationship('User', backref='notifications_list', lazy=True, overlaps="notifications,user_notifications")
+    #user = db.relationship('User', backref='notifications_list', lazy=True, overlaps="notifications,user_notifications")
