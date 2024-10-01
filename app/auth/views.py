@@ -411,7 +411,7 @@ def transfer():
 """
 
     try:
-    send_email(current_user.email, subject, message)
+        send_email(current_user.email, subject, message)
     except Exception as e:
         print( f"Failed to send email: {str(e)}")
         return jsonify({"error": f"Failed to send email: {str(e)}"}), 500
