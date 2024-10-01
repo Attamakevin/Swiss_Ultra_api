@@ -65,7 +65,7 @@ def register():
           Welcome to SwitzUltra
     </div>
     <div style="padding: 20px;">
-      <p>Hi {user.user_name},</p>
+      <p>Hi {new_user.user_name},</p>
       <p>Welcome to SwitzUltra! Your account number is <strong>{new_user.account_number}</strong>. We're thrilled to have you with us.</p>
       <p>Explore your dashboard and get started on enjoying the features and benefits we offer.</p>
       <p>If you have any questions, feel free to reach out to our support team at any time.</p>
@@ -82,7 +82,8 @@ def register():
 
 
     except Exception as e:
-         return jsonify({"error": "User registered but failed to send email", "details": str(e)}), 500
+        print(f"Failed to send email: {str(e)}")
+        return jsonify({"error": "User registered but failed to send email", "details": str(e)}), 500
 
     return jsonify({"message": "User registered successfully", "account_number": new_user.account_number}), 201
 
