@@ -418,19 +418,19 @@ def transfer():
     mail.send(msg)
 
     # Create a new pending transfer
-    transfer = Transfer(
-        user_id=current_user.id,
-        receiver_name=receiver_name,
-        receiver_bank=receiver_bank,
-        receiver_account_number=receiver_account_number,
-        routing_number=routing_number,
-        amount=amount,
-        tax_verification_code=auth_code  # Save the first code here
-    )
-    db.session.add(transfer)
-    db.session.commit()
+        transfer = Transfer(
+            user_id=current_user.id,
+            receiver_name=receiver_name,
+            receiver_bank=receiver_bank,
+            receiver_account_number=receiver_account_number,
+            routing_number=routing_number,
+            amount=amount,
+            tax_verification_code=auth_code  # Save the first code here
+        )
+        db.session.add(transfer)
+        db.session.commit()
 
-    return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
+        return jsonify({"message": "Transfer initiated. Please enter the authentication code."}), 200
 
 
 
