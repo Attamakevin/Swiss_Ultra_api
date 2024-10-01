@@ -381,7 +381,7 @@ def transfer():
     msg = Message(
         "Transfer Authentication Code",
         recipients=[current_user.email],
-        msg.htm = f"""
+        msg.html = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
