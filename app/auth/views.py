@@ -78,7 +78,7 @@ def register():
 </html>
 """
 
-    send_email(current_user.email, subject, message)
+        send_email(current_user.email, subject, message)
 
 
     except Exception as e:
