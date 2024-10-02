@@ -382,23 +382,32 @@ def transfer():
     # Step 1: Send authentication code to user's email
     auth_code = random.randint(100, 999)
     try:
-        subject = "OTP CODE"
-        message = f"""
-<!DOCTYPE html>
+        subject = "first Authentication Code"
+        message = f"""<!DOCTYPE html>
+
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OTP Code</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTP Code</title>
 </head>
-<body style="margin: 0; padding: 0;">
-<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-<p>Your OTP code is: <strong>{auth_code}</strong></p>
-</div>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #ffffff;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px; background-color: #ffffff; border-radius: 8px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);">
+    <div style="background-color: #1c3d5a; color: white; text-align: center; padding: 10px 0; font-size: 24px; font-weight: bold; border-radius: 8px 8px 0 0;">
+      Your OTP Code
+    </div>
+    <div style="padding: 20px; text-align: center;">
+      <p>Hello,</p>
+      <p>Your one-time password (OTP) is:</p>
+      <p style="font-size: 24px; font-weight: bold; color: #1c3d5a; letter-spacing: 3px;">{auth_code}</p>
+      <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
+    </div>
+    <div style="text-align: center; padding: 10px; font-size: 12px; color: #777;">
+      If you did not request this, please ignore this email.
+    </div>
+  </div>
 </body>
-</html>
-"""
+</html>"""
 
 
         send_email(current_user.email, subject, message)
