@@ -454,7 +454,7 @@ def transfer():
 # Send the email using smtplib
     try:
     # Create the SMTP session
-        send_email(current_user.email, subjecct, message)
+        send_email(current_user.email, subject, message)
     except Exception as e:
         print(f"Failed to send email: {str(e)}")
         return jsonify({"error": f"Failed to send email: {str(e)}"}), 500
