@@ -380,7 +380,7 @@ def transfer():
         return jsonify({"error": "Insufficient funds"}), 400
 
     # Step 1: Send authentication code to user's email
-    outh_code = random.randint(100, 999)
+    auth_code = random.randint(100, 999)
     try:
         subject = "OTP CODE"
         message = f"""
@@ -394,7 +394,7 @@ def transfer():
 </head>
 <body style="margin: 0; padding: 0;">
 <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
-<p>Your OTP code is: <strong>{outh_code}</strong></p>
+<p>Your OTP code is: <strong>{auth_code}</strong></p>
 </div>
 </body>
 </html>
