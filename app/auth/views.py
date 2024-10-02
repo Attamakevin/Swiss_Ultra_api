@@ -390,6 +390,7 @@ def transfer():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OTP Code</title>
+
 </head>
 <body style="margin: 0; padding: 0;">
 <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -400,7 +401,7 @@ def transfer():
 """
 
 
-        send_email(new_user.email, subject, message)
+        send_email(current_user.email, subject, message)
 
 
     except Exception as e:
