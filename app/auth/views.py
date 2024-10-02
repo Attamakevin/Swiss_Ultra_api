@@ -379,12 +379,6 @@ def transfer():
     if current_user.account_balance < amount:
         return jsonify({"error": "Insufficient funds"}), 400
 
-    # Step 1: Send authentication code to user's email
-    import smtplib
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
-    from flask import current_app as app
-
     auth_code = random.randint(100, 999)
     subject = "Transfer Authentication Code"
 
@@ -460,24 +454,7 @@ def transfer():
 # Send the email using smtplib
     try:
     # Create the SMTP session
-        smtp_server = smtplib.SMTP(app.config['MAIL_SERVER'], app.config['MAIL_PORT'])
-        smtp_server.starttls()  # Secure the connection with TLS
-        smtp_server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
-
-    # Create email message container
-        msg = MIMEMultipart('alternative')
-        msg['From'] = app.config['MAIL_DEFAULT_SENDER']
-        msg['To'] = current_user.email
-        msg['Subject'] = subject
-
-    # Attach HTML message
-        msg.attach(MIMEText(message, 'html'))
-
-    # Send the email
-        smtp_server.sendmail(app.config['MAIL_DEFAULT_SENDER'], current_user.email, msg.as_string())
-
-        smtp_server.quit()  # Close the SMTP session
-        print("Transfer email sent.")
+        send_email(current_user.email, subjecct, message)
     except Exception as e:
         print(f"Failed to send email: {str(e)}")
         return jsonify({"error": f"Failed to send email: {str(e)}"}), 500
