@@ -379,85 +379,32 @@ def transfer():
     if current_user.account_balance < amount:
         return jsonify({"error": "Insufficient funds"}), 400
 
-    auth_code = random.randint(100, 999)
-    subject = "Transfer Authentication Code"
-
-# HTML message
-    message = f"""
+    # Step 1: Send authentication code to user's email
+    try:
+        subject = "OTP CODE"
+        message = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OTP Code</title>
-  <style>
-    body {{
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background-color: #ffffff;
-    }}
-    .container {{
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    }}
-    .header {{
-      background-color: #1c3d5a;
-      color: white;
-      text-align: center;
-      padding: 10px 0;
-      font-size: 24px;
-      font-weight: bold;
-      border-radius: 8px 8px 0 0;
-    }}
-    .content {{
-      padding: 20px;
-      text-align: center;
-    }}
-    .otp-code {{
-      font-size: 24px;
-      font-weight: bold;
-      color: #1c3d5a;
-      letter-spacing: 3px;
-    }}
-    .footer {{
-      text-align: center;
-      padding: 10px;
-      font-size: 12px;
-      color: #777;
-    }}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OTP Code</title>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      Your OTP Code
-    </div>
-    <div class="content">
-      <p>Hello,</p>
-      <p>Your one-time password (OTP) is:</p>
-      <p class="otp-code">{auth_code}</p>
-      <p>Please enter this code to proceed. This code is valid for the next 10 minutes.</p>
-    </div>
-    <div class="footer">
-      If you did not request this, please ignore this email.
-    </div>
-  </div>
+<body style="margin: 0; padding: 0;">
+<div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+<p>Your OTP code is: <strong>{otp_code}</strong></p>
+</div>
 </body>
 </html>
 """
 
-# Send the email using smtplib
-    try:
-    # Create the SMTP session
-        send_email(current_user.email, subject, message)
+
+        send_email(new_user.email, subject, message)
+
+
     except Exception as e:
         print(f"Failed to send email: {str(e)}")
-        return jsonify({"error": f"Failed to send email: {str(e)}"}), 500
+        return jsonify({"error": "User registered but failed to send email", "details": str(e)}), 500
 
 # Create a new pending transfer
     transfer = Transfer(
